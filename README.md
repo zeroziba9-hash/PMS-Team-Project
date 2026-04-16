@@ -22,5 +22,14 @@
 - `v0.1.0` : 초기 업로드
 - `v0.1.1` : `.gitignore` 추가 + 빌드 산출물 정리
 
+## 목업 스크린샷
+아래는 초기 화면 목업입니다.
+
+![mockup-01](assets/mockups/mockup-01.png)
+![mockup-02](assets/mockups/mockup-02.png)
+![mockup-03](assets/mockups/mockup-03.png)
+![mockup-04](assets/mockups/mockup-04.png)
+![mockup-05](assets/mockups/mockup-05.png)
+
 ---
 필요하면 README는 계속 가볍게 업데이트할 예정입니다.
