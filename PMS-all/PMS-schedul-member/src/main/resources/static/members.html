@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion Lite PMS</title>
+    <link rel="stylesheet" href="css/members.css">
+</head>
+<body>
+    <div class="wrapper">
+        <!-- 사이드바 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Notion Lite PMS</h1>
+            </div>
+            <nav class="sidebar-menu">
+                <ul>
+                    <li><a href="#">프로젝트 개요</a></li>
+                    <li class="active"><a href="members.html">멤버 관리</a></li>
+                    <li><a href="#">테스크 관리</a></li>
+                    <li><a href="schedule.html">일정 관리</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>멤버 관리</h1>
+                <div class="header-controls">
+                    <select id="projectId" class="project-select">
+                        <option value="">프로젝트 선택</option>
+                    </select>
+                    <button id="addMemberBtn" class="btn-add-member">+ 멤버 추가</button>
+                </div>
+            </div>
+
+            <div class="content">
+                <table class="members-table">
+                    <thead>
+                        <tr>
+                            <th>이름</th>
+                            <th>이메일</th>
+                            <th>역할</th>
+                            <th>참여일</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersTableBody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #999; padding: 30px;">프로젝트를 선택하세요</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- 모달 -->
+    <div id="addMemberModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>멤버 추가</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>사용자 선택</label>
+                    <select id="userSelect">
+                        <option value="">사용자를 선택하세요</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>역할</label>
+                    <select id="roleSelect">
+                        <option value="false">CONTRIBUTOR</option>
+                        <option value="true">ADMIN</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel">취소</button>
+                <button id="confirmAddBtn" class="btn-confirm">추가</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/members.js"></script>
+</body>
+</html>

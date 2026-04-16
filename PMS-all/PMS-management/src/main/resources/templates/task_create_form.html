@@ -1,0 +1,13 @@
+<html layout:decorate="~{layout}">
+<div layout:fragment="content" class="container">
+	<h3 class="my-3 border-bottom pb-2">일감 추가</h3>
+	<span th:text="${pid}"></span>
+	<form th:action="@{|/task/create/${pid}|}" th:object="${taskCreateForm}" method="post" >
+		<div class="mb-3">
+			<label for="content" class="form-label">내용</label> 
+			<input type="text" th:field="*{content}" class="form-control" >
+		</div>
+		<button type="submit" class="btn btn-primary my-2">추가하기</button>
+	</form>
+</div>	
+</html>

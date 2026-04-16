@@ -1,0 +1,66 @@
+<html layout:decorate="~{layout}">
+	<div layout:fragment="content" class="container my-3">
+		<a th:href="@{|/task/create/${pid}|}"
+			class="btn btn-sm btn-outline-secondary"
+			th:text="|일감 추가|"></a>
+	<div class="card my-3" th:each="task : ${tasks}">
+		<a th:id="|task_${task.id}|"></a>
+		<div class="card-body">
+			<div class="card-t ext" style="white-space: pre-line;" th:utext="|내용: ${@commonUtil.markdown(task.content)}|"></div>
+			<div class="col-6" th:if="${task.creator != null and #strings.isEmpty(task.creator.name)}">
+			    <div class="input-group">
+			        <input type="text" th:id="|input_content_${task.id}|" class="form-control" th:value="${content}">						        
+			        <button class="btn btn-outline-secondary btn-content" type="button" th:data-task-id="${task.id}">내용수정</button>
+			    </div>
+			</div>
+			<div class="card-t ext" style="white-space: pre-line;" th:utext="|상태: ${@commonUtil.markdown(task.status)}|"></div>
+			<div class="col-6" th:if="${task.creator != null and #strings.isEmpty(task.creator.name)}">
+			    <div class="input-group">
+			        <input type="text" th:id="|input_status_${task.id}|" class="form-control" th:value="${status}">						        
+			        <button class="btn btn-outline-secondary btn-status" type="button" th:data-task-id="${task.id}">상태수정</button>
+			    </div>
+			</div>
+			<div class="mb-2" th:text="${#temporals.format(task.startDate, 'yyyy-MM-dd')}"></div>
+			<div class="mb-2" th:text="${#temporals.format(task.endDate, 'yyyy-MM-dd')}"></div>
+			<div th:text="|생성자: ${#strings.isEmpty(task.creator.name) ? #authentication.getPrincipal().getUsername() : task.creator.name}|"></div>
+			<div th:if="${task.members.size()>0}" class="card-body" th:each="member : ${task.members}">
+				<div th:text="|멤버: ${#strings.isEmpty(member.name) ? #authentication.getPrincipal().getUsername() : member.name}|"></div>
+			</div>
+			<a th:href="@{|/task/setMember/${task.id}|}"
+				class="btn btn-sm btn-outline-secondary"
+				sec:authorize="isAuthenticated()"
+				th:if="${task.creator != null and #strings.isEmpty(task.creator.name)}">
+				멤버 관리
+			</a>
+		</div>
+	</div>
+		<form th:action="@{|/task/setStatus|}" method="get" id="statusForm">
+			<input type="hidden" id="status" name="status" th:value="${status}">
+			<input type="hidden" id="curStatusTask" name="curStatusTask" th:value="${curStatusTask}">
+		</form>
+		<form th:action="@{|/task/setContent|}" method="get" id="contentForm">
+			<input type="hidden" id="content" name="content" th:value="${content}">
+			<input type="hidden" id="curContentTask" name="curContentTask" th:value="${curContentTask}">
+		</form>
+	<script>
+		const btns_status = document.getElementsByClassName("btn-status");
+		Array.from(btns_status).forEach(btn_status => {
+			btn_status.addEventListener('click', function(){
+				const taskId = this.dataset.taskId;
+				document.getElementById('status').value = document.getElementById(`input_status_${taskId}`).value;
+				document.getElementById('curStatusTask').value = taskId;
+				document.getElementById('statusForm').submit();
+			});
+		});
+		const btns_content = document.getElementsByClassName("btn-content");
+		Array.from(btns_content).forEach(btn_content => {
+			btn_content.addEventListener('click', function(){
+				const taskId = this.dataset.taskId;
+				document.getElementById('content').value = document.getElementById(`input_content_${taskId}`).value;
+				document.getElementById('curContentTask').value = taskId;
+				document.getElementById('contentForm').submit();
+			});
+		});
+	</script>
+	</div>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion Lite PMS</title>
+    <link rel="stylesheet" href="css/schedule.css">
+</head>
+<body>
+    <div class="wrapper">
+        <!-- 사이드바 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Notion Lite PMS</h1>
+            </div>
+            <nav class="sidebar-menu">
+                <ul>
+                    <li><a href="#">프로젝트 개요</a></li>
+                    <li><a href="members.html">멤버 관리</a></li>
+                    <li><a href="#">테스크 관리</a></li>
+                    <li class="active"><a href="schedule.html">일정 관리</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>일정 관리</h1>
+                <div class="header-controls">
+                    <select id="projectId" class="project-select">
+                        <option value="">프로젝트 선택</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="calendar-header">
+                    <button id="prevMonth" class="month-btn">&lt;</button>
+                    <h2 id="monthYear"></h2>
+                    <button id="nextMonth" class="month-btn">&gt;</button>
+                </div>
+
+                <table class="calendar">
+                    <thead>
+                        <tr>
+                            <th>일</th>
+                            <th>월</th>
+                            <th>화</th>
+                            <th>수</th>
+                            <th>목</th>
+                            <th>금</th>
+                            <th>토</th>
+                        </tr>
+                    </thead>
+                    <tbody id="calendarBody">
+                    </tbody>
+                </table>
+
+                <div class="task-details">
+                    <h3>선택된 날짜의 작업</h3>
+                    <div id="taskList" class="task-list">
+                        <p>날짜를 선택하세요</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/schedule.js"></script>
+</body>
+</html>

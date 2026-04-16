@@ -1,0 +1,39 @@
+<html layout:decorate="~{layout}">
+<div layout:fragment="content" class="container">
+	<h3 class="my-3 border-bottom pb-2">멤버 관리</h3>
+	<div class="card my-3" th:each="member : ${members}">
+		<div class="card-body">
+			<span th:text="${member.name}"></span>
+			<a href="javascript:void(0);"
+				th:data-uri="@{|/task/setMember/${task.id}/${member.name}|}"
+				class="member btn btn-sm"
+				th:if="${task.creator.name.equals(#authentication.getPrincipal().getUsername())}"
+				th:classappend="${task.members.contains(member)? 'added btn-success':'btn-outline-secondary'}"
+				sec:authorize="isAuthenticated()">
+				
+				<span th:text="${task.members.contains(member)?'멤버 제거':'멤버 추가'}">						
+			</a>
+		</div>
+	</div>
+	<a th:href="@{|/task/list/${task.project.id}|}"
+		class="btn btn-sm btn-outline-secondary"
+		th:text="뒤로"></a>
+</div>
+<script layout:fragment="script" type='text/javascript'>
+	const vote_element = document.getElementsByClassName("member");
+		Array.from(vote_element).forEach(function(e){
+			e.addEventListener('click', function() {
+				confirmStr = "";
+				if(e.classList.contains("added")){
+					confirmStr = "해당 멤버를 제거하시겠습니까?";
+				}
+				else{
+					confirmStr = "해당 멤버를 추가하시겠습니까?";
+				}
+				if(confirm(confirmStr)){
+					location.href = this.dataset.uri;
+				};
+			});
+		});
+</script>
+</html>
