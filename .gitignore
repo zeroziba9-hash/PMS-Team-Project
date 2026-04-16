@@ -1,0 +1,28 @@
+﻿# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+
+# Java / JVM
+*.class
+
+# Maven
+**/target/
+
+# Gradle
+**/build/
+**/.gradle/
+
+# Node (if added later)
+**/node_modules/
+
+# Env files
+.env
+.env.*
