@@ -76,7 +76,7 @@ body {
 .main-content {
     margin-left: 240px;
     flex: 1;
-    padding: 32px 40px;
+    padding: 20px 30px;
     background-color: #f5f6f8;
 }
 
@@ -84,7 +84,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 20px;
 }
 
 .page-header h1 {
@@ -119,14 +119,14 @@ body {
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 24px;
+    padding: 15px;
 }
 
 .calendar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 15px;
 }
 
 .calendar-header h2 {
@@ -173,8 +173,8 @@ body {
 
 .calendar td {
     border: 1px solid #e5e7eb;
-    padding: 12px;
-    height: 120px;
+    padding: 12px 0; /* 좌우 패딩을 0으로 수정 */
+    height: 80px;
     vertical-align: top;
     cursor: pointer;
     background-color: white;
@@ -222,9 +222,8 @@ body {
 .calendar td .task {
     background-color: #e6f2ff;
     padding: 2px 6px;
-    margin: 2px 0;
+    margin: 2px 0; /* 좌우 마진은 0 유지 */
     border-radius: 3px;
-    border-left: 2px solid #5b7cff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -373,8 +372,8 @@ body {
 
 .calendar td {
     border: 1px solid #dee2e6;
-    padding: 10px;
-    height: 100px;
+    padding: 10px 0; /* 좌우 패딩을 0으로 수정 */
+    height: 80px;
     vertical-align: top;
     cursor: pointer;
     position: relative;
@@ -422,9 +421,8 @@ body {
 .calendar td .task {
     background-color: #e7f3ff;
     padding: 2px 4px;
-    margin: 2px 0;
+    margin: 2px 0; /* 좌우 마진은 0 유지 */
     border-radius: 3px;
-    border-left: 3px solid #007bff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -3,18 +3,24 @@ let currentDate = new Date();
 let selectedDate = null;
 let selectedProjectId = null;
 
+// 날짜를 YYYY-MM-DD 형식의 로컬 문자열로 변환하는 헬퍼 함수 (타임존 문제 해결)
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    loadProjects();
+    // URL에서 projectId 추출 (예: /project/1/schedule -> 1)
+    const pathParts = window.location.pathname.split('/');
+    selectedProjectId = pathParts[2];
+
     renderCalendar();
     setupEventListeners();
 });
 
 function setupEventListeners() {
-    document.getElementById('projectId').addEventListener('change', (e) => {
-        selectedProjectId = e.target.value;
-        renderCalendar();
-    });
-
     document.getElementById('prevMonth').addEventListener('click', () => {
         currentDate.setMonth(currentDate.getMonth() - 1);
         renderCalendar();
@@ -24,32 +30,6 @@ function setupEventListeners() {
         currentDate.setMonth(currentDate.getMonth() + 1);
         renderCalendar();
     });
-}
-
-async function loadProjects() {
-    try {
-        const response = await fetch(`${API_BASE}/projects`);
-        if (!response.ok) throw new Error('프로젝트 로드 실패');
-        
-        const projects = await response.json();
-        const projectSelect = document.getElementById('projectId');
-        
-        projectSelect.innerHTML = '<option value="">프로젝트 선택</option>';
-        projects.forEach(project => {
-            const option = document.createElement('option');
-            option.value = project.id;
-            option.textContent = project.title;
-            projectSelect.appendChild(option);
-        });
-    } catch (error) {
-        console.error('프로젝트 로드 오류:', error);
-        // 테스트용 더미 데이터
-        document.getElementById('projectId').innerHTML = `
-            <option value="">프로젝트 선택</option>
-            <option value="1">프로젝트 1</option>
-            <option value="2">프로젝트 2</option>
-        `;
-    }
 }
 
 async function renderCalendar() {
@@ -94,7 +74,7 @@ async function renderCalendar() {
                 }
                 
                 cell.innerHTML = `<div class="date-number">${date}</div><div class="tasks"></div>`;
-                cell.dataset.date = cellDate.toISOString().split('T')[0];
+                cell.dataset.date = formatDate(cellDate);
                 cell.onclick = () => selectDate(cell, cellDate);
                 
                 date++;
@@ -119,8 +99,8 @@ async function loadTasksForMonth(year, month) {
         const startDate = new Date(year, month, 1);
         const endDate = new Date(year, month + 1, 0);
         
-        const startStr = startDate.toISOString().replace('Z', '+00:00');
-        const endStr = endDate.toISOString().replace('Z', '+00:00');
+        const startStr = formatDate(startDate);
+        const endStr = formatDate(endDate);
         
         const response = await fetch(
             `${API_BASE}/tasks/project/${selectedProjectId}/range?startAt=${encodeURIComponent(startStr)}&endAt=${encodeURIComponent(endStr)}`
@@ -132,14 +112,40 @@ async function loadTasksForMonth(year, month) {
         
         // 캘린더에 작업 표시
         tasks.forEach(task => {
-            const startDate = task.startAt.split('T')[0];
-            const cell = document.querySelector(`td[data-date="${startDate}"]`);
-            if (cell && cell.querySelector('.tasks')) {
-                const taskEl = document.createElement('div');
-                taskEl.className = 'task';
-                taskEl.textContent = task.content || '작업';
-                taskEl.title = task.content;
-                cell.querySelector('.tasks').appendChild(taskEl);
+            // 시작일과 종료일을 로컬 데이트 객체로 변환
+            const start = new Date(task.startAt);
+            const end = new Date(task.endAt);
+            const startStr = formatDate(start);
+            const endStr = formatDate(end);
+            
+            // 시작 날짜부터 종료 날짜까지 루프를 돌며 모든 해당 셀에 표시
+            let curr = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+            let last = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+            
+            while (curr <= last) {
+                const dateStr = formatDate(curr);
+                const cell = document.querySelector(`td[data-date="${dateStr}"]`);
+                
+                if (cell && cell.querySelector('.tasks')) {
+                    const taskEl = document.createElement('div');
+                    taskEl.className = 'task';
+
+                    // 클래스 추가 (CSS에서 둥근 모서리 및 간격 제어)
+                    if (dateStr === startStr) taskEl.classList.add('task-start');
+                    if (dateStr === endStr) taskEl.classList.add('task-end');
+                    
+                    // 텍스트가 없는 경우에도 막대 형태 유지를 위해 &nbsp; 또는 빈 문자열 처리
+                    taskEl.textContent = ''; 
+
+                    // 텍스트는 오직 시작일에만 표시함 (다음 주로 넘어가도 재표시 안 함)
+                    if (dateStr === startStr) {
+                        taskEl.textContent = task.content || '작업';
+                    }
+
+                    taskEl.title = task.content;
+                    cell.querySelector('.tasks').appendChild(taskEl);
+                }
+                curr.setDate(curr.getDate() + 1); // 다음 날로 이동
             }
         });
     } catch (error) {
@@ -172,11 +178,14 @@ async function displayTasksForDate(date) {
         if (!response.ok) throw new Error('Task 로드 실패');
         
         const tasks = await response.json();
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = formatDate(date);
         
+        // 해당 날짜가 테스크 기간(시작~종료) 안에 포함되는지 필터링
         const filteredTasks = tasks.filter(task => {
-            const taskDate = task.startAt.split('T')[0];
-            return taskDate === dateStr;
+            // LocalDate(YYYY-MM-DD)는 문자열로 전달되므로 날짜 비교가 용이함
+            const taskStart = task.startAt;
+            const taskEnd = task.endAt;
+            return dateStr >= taskStart && dateStr <= taskEnd;
         });
         
         if (filteredTasks.length === 0) {
@@ -184,17 +193,37 @@ async function displayTasksForDate(date) {
             return;
         }
         
-        const taskListHTML = filteredTasks.map(task => `
+        const taskListHTML = filteredTasks.map(task => {
+        // 상태 값 매핑 (int 기준: 0-start, 1-progress, 2-end)
+        const statusMap = { 0: 'start', 1: 'progress', 2: 'end' };
+        const statusText = statusMap[task.status] ?? '대기';
+        
+        // 부담당자 이름 목록 생성
+        const co_assignees = task.users && task.users.length > 0 
+            ? task.users.map(u => u.name).join(', ') 
+            : '없음';
+
+        // 담당자 이름
+        const assignee = task.user ? task.user.name : '미지정';
+
+        return `
             <div class="task-item">
                 <div class="title">${task.content || '작업'}</div>
                 <div class="dates">
-                    시작: ${new Date(task.startAt).toLocaleString('ko-KR')} ~ 
-                    종료: ${new Date(task.endAt).toLocaleString('ko-KR')}
+                    시작: ${formatDate(new Date(task.startAt))} ~ 
+                    종료: ${formatDate(new Date(task.endAt))}
                 </div>
-                <span class="status">${task.status || '대기'}</span>
+                <div class="assignee" style="font-size: 12px; color: #888; margin-bottom: 4px;">
+                    담당자: ${assignee}
+                </div>
+                <div class="co_assignees" style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                    부담당자: ${co_assignees}
+                </div>
+                <span class="status status-${statusText}">${statusText}</span>
                 ${task.description ? `<div class="description">${task.description}</div>` : ''}
             </div>
-        `).join('');
+            `;
+        }).join('');
         
         document.getElementById('taskList').innerHTML = taskListHTML;
     } catch (error) {

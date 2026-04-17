@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.example.demo.task.Task;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.example.demo.member.Member;
 import java.util.List;
 
@@ -29,9 +30,11 @@ public class User {
     private String password;
     
     // Relationships
+    @JsonIgnore
     @ManyToMany(mappedBy = "users", fetch = FetchType.LAZY)
     private List<Task> tasks;
     
+    @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Member> members;
 }

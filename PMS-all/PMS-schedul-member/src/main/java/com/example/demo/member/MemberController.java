@@ -13,20 +13,27 @@ public class MemberController {
     private MemberService memberService;
     
     @GetMapping("/project/{projectId}")
-    public List<Member> getMembersByProject(@PathVariable Integer projectId) {
+    public List<Member> getMembersByProject(@PathVariable(name = "projectId") Integer projectId) {
         return memberService.getMembersByProject(projectId);
     }
     
     @PostMapping
     public Member addMember(
-            @RequestParam Integer projectId,
-            @RequestParam Integer userId,
-            @RequestParam(required = false) Boolean isLeader) {
-        return memberService.addMemberToProject(projectId, userId, isLeader);
+            @RequestParam(name = "projectId") Integer projectId,
+            @RequestParam(name = "userId") Integer userId,
+            @RequestParam(name = "isLeader", required = false) Boolean isLeader,
+            @RequestParam(name = "requesterId") Integer requesterId) {
+        try {
+            return memberService.addMemberToProject(projectId, userId, isLeader, requesterId);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
     }
     
     @DeleteMapping("/{memberId}")
-    public void removeMember(@PathVariable Integer memberId) {
-        memberService.removeMemberFromProject(memberId);
+    public void removeMember(
+            @PathVariable(name = "memberId") Integer memberId,
+            @RequestParam(name = "requesterId") Integer requesterId) {
+        memberService.removeMemberFromProject(memberId, requesterId);
     }
 }
