@@ -1,6 +1,8 @@
 package com.example.demo.member;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -60,4 +62,19 @@ public class MemberController {
             @RequestParam(name = "requesterId") Integer requesterId) {
         memberService.removeMemberFromProject(memberId, requesterId);
     }
+
+    @PutMapping("/{memberId}/role")
+    public ResponseEntity<?> updateMemberRole(
+        @PathVariable(name = "memberId") Integer memberId,
+        @RequestParam(name = "isLeader") boolean isLeader,
+        @RequestParam(name = "requesterId") Integer requesterId) {
+        
+        try {
+            memberService.updateMemberRole(memberId, isLeader, requesterId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 }

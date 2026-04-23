@@ -56,7 +56,7 @@ public class MemberService {
      */
     public boolean isUserAdmin(Integer projectId, Integer userId) {
         Member member = memberRepository.findByProjectIdAndUserId(projectId, userId);
-        return member != null && member.getIsLeader();
+        return member != null && Boolean.TRUE.equals(member.getIsLeader());
     }
     
     /**
@@ -116,4 +116,22 @@ public class MemberService {
         // [2] 삭제 처리
         memberRepository.deleteById(memberId);
     }
+
+    @Transactional
+    public void updateMemberRole(Integer memberId, boolean isLeader, Integer requesterId) {
+        // 1. 변경할 멤버 조회
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 멤버가 없습니다."));
+                
+        // 2. 권한 체크: 요청자가 해당 프로젝트의 관리자인지 확인
+        if (!isUserAdmin(member.getProject().getId(), requesterId)) {
+            throw new RuntimeException("관리자 권한이 없습니다. 역할을 변경할 수 없습니다.");
+        }
+
+        // 3. 역할(isLeader) 상태 업데이트
+        member.setIsLeader(isLeader);
+        
+        // @Transactional이 있으면 별도의 save 호출 없이도 변경 감지로 반영됩니다.
+    }
+
 }
