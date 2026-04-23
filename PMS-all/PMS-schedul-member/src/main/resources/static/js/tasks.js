@@ -5,6 +5,7 @@ let projectTasks = [];
 let taskMembers = []; // 현재 태스크 멤버 목록
 let selectedAvailableUser = null; // 왼쪽 리스트에서 현재 선택된 사용자
 let curUserId = -1;
+let taskManager = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     // URL에서 projectId 추출 (예: /project/1/members -> 1)
@@ -196,20 +197,22 @@ async function editMember(taskId) {
     // 3. 데이터 로드 및 렌더링
     await loadDatas();
     taskMembers = projectTasks.find(f=>f.id == taskId).users;
+    taskManager = projectTasks.find(f=>f.id == taskId).user;
     renderDualLists();
 }
 
 function renderDualLists() {
     const searchTerm = document.getElementById('userSearch')?.value.toLowerCase() || '';
     const projectMemberIds = new Set(projectMembers.map(m => m.user.id));
-    const pendingUserIds = new Set(taskMembers.map(u => u.id));
     const taskUserIds = new Set(taskMembers.map(u => u.id));
-
+    
     // 왼쪽 리스트: 프로젝트 멤버이고 일감 멤버 아니고
     const availableUsers = projectMembers.filter(user => 
         !taskUserIds.has(user.id) &&
         (user.user.name.toLowerCase().includes(searchTerm) || user.id.toString().includes(searchTerm))
     );
+
+    const modifiableMembers = taskMembers.filter(f=>f.id != taskManager.id);
 
     const availableList = document.getElementById('availableUsersList');
     if (availableList) {
@@ -223,7 +226,7 @@ function renderDualLists() {
 
     const selectedList = document.getElementById('selectedUsersList');
     if (selectedList) {
-        selectedList.innerHTML = taskMembers.map(user => `
+        selectedList.innerHTML = modifiableMembers.map(user => `
             <div class="user-item">
                 ${user.name} (${user.id})
                 <button class="btn-remove-item" onclick="removePendingUser('${user.id}')">×</button>

@@ -31,6 +31,11 @@ public class Task {
     @JsonIgnore
     private Project project;
     
+    // 업무 담당자 (단일 담당자 혹은 생성자)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "task_user",

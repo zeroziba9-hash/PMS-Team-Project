@@ -24,6 +24,7 @@ public class TaskService {
 		task.setProject(project);
         List<User> members = new ArrayList<User>();
         members.add(creator);
+		task.setUser(creator);
         task.setUsers(members);
         task.setContent(content);
         task.setStartAt(LocalDate.now());
