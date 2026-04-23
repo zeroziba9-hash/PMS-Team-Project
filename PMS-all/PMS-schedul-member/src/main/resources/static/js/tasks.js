@@ -5,6 +5,7 @@ let projectTasks = [];
 let taskMembers = []; // 현재 태스크 멤버 목록
 let selectedAvailableUser = null; // 왼쪽 리스트에서 현재 선택된 사용자
 let curUserId = -1;
+let taskManager = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     // URL에서 projectId 추출 (예: /project/1/members -> 1)
@@ -112,12 +113,33 @@ function renderTaskTable() {
             <td>${task.endAt}</td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn-action" onclick="openEditTaskModal(${task.id}, '${task.content}', ${task.status})">테스크 수정</button>
-                    <button class="btn-action" onclick="editMember(${task.id})">멤버 변경</button>
+                    <button class="btn-action" onclick="openEditTaskModal(${task.id}, '${task.content}', ${task.status}, '${task.startAt}', '${task.endAt}')">테스크 수정</button>
+                    ${task.user.id == curUserId?'<button class="btn-action" onclick="editMember('+task.id+')">멤버 변경</button>':''}
                 </div>
             </td>
         </tr>
+        <tr>
+            <td colspan="5">
+                <details>
+                    <summary>메모</summary>
+                    <ul>
+                        <li>${task.content}</li>
+                        <li>written by ${task.user.name}</li>
+                        <li>temp memo content</li>
+                    </ul>
+                    <div>
+                        <input type="text" id="inputMemoOn${task.id}">
+                        <button class="btn-action" onclick="addMemo(${task.id})">메모 추가</button>
+                    </div>
+                </details>
+            </td>
+        </tr>
     `).join('');
+}
+
+async function addMemo(taskId) {
+    let memo = document.getElementById('inputMemoOn'+taskId).value;
+    console.log(memo+" 입력 시도");    
 }
 
 async function openAddTaskModal() {
@@ -132,10 +154,9 @@ async function openAddTaskModal() {
     if (contentInput) contentInput.value = '';
 }
 
-async function openEditTaskModal(taskId, taskContent, taskStatus) {
+async function openEditTaskModal(taskId, taskContent, taskStatus, taskStart, taskEnd) {
     // 1. 모달을 먼저 표시 (사용자 경험 개선)
     document.getElementById('editTaskModal').classList.add('show');
-    console.log(taskContent);
     // 2. 초기화    
     const contentInput = document.getElementById('taskEditContent');
     if (contentInput) {
@@ -145,6 +166,15 @@ async function openEditTaskModal(taskId, taskContent, taskStatus) {
     if (statusInput) {
         statusInput.value = taskStatus;
     }
+    const startInput = document.getElementById('taskStartDate');
+    if (startInput) {
+        startInput.value = taskStart;
+    }
+    const endInput = document.getElementById('taskEndDate');
+    if (endInput) {
+        endInput.value = taskEnd;
+    }
+    
     const curTask = document.getElementById('curTaskId');
     if(curTask){
         curTask.value = taskId;        
@@ -166,20 +196,22 @@ async function editMember(taskId) {
     // 3. 데이터 로드 및 렌더링
     await loadDatas();
     taskMembers = projectTasks.find(f=>f.id == taskId).users;
+    taskManager = projectTasks.find(f=>f.id == taskId).user;
     renderDualLists();
 }
 
 function renderDualLists() {
     const searchTerm = document.getElementById('userSearch')?.value.toLowerCase() || '';
     const projectMemberIds = new Set(projectMembers.map(m => m.user.id));
-    const pendingUserIds = new Set(taskMembers.map(u => u.id));
     const taskUserIds = new Set(taskMembers.map(u => u.id));
-
+    
     // 왼쪽 리스트: 프로젝트 멤버이고 일감 멤버 아니고
     const availableUsers = projectMembers.filter(user => 
         !taskUserIds.has(user.id) &&
         (user.user.name.toLowerCase().includes(searchTerm) || user.id.toString().includes(searchTerm))
     );
+
+    const modifiableMembers = taskMembers.filter(f=>f.id != taskManager.id);
 
     const availableList = document.getElementById('availableUsersList');
     if (availableList) {
@@ -193,7 +225,7 @@ function renderDualLists() {
 
     const selectedList = document.getElementById('selectedUsersList');
     if (selectedList) {
-        selectedList.innerHTML = taskMembers.map(user => `
+        selectedList.innerHTML = modifiableMembers.map(user => `
             <div class="user-item">
                 ${user.name} (${user.id})
                 <button class="btn-remove-item" onclick="removePendingUser('${user.id}')">×</button>
@@ -300,29 +332,33 @@ async function confirmAddTask() {
 }
 
 async function confirmEditTask() {
-    let content = document.getElementById("taskEditContent").value;
-    let statusTxt = document.getElementById("status").value;
-    let status  = Number.parseInt(statusTxt);
     let curTaskId = -1;
     const curTask = document.getElementById('curTaskId');
     if(curTask){
         curTaskId = curTask.value;
     }
+
+    let content = document.getElementById("taskEditContent").value;
+    let statusTxt = document.getElementById("status").value;
+    let status  = Number.parseInt(statusTxt);
+    let start = document.getElementById('taskStartDate').value;
+    let end = document.getElementById('taskEndDate').value;
+
     if(Number.isNaN(status)){
-        //솔직히 이럴 일은 없을텐데
+        //있어서는 안될 일
         return;
     }
 
     const response = await fetch(
-        `${API_BASE}/tasks/modify?taskId=${curTaskId}&content=${content}&status=${status}`,
+        `${API_BASE}/tasks/modify?taskId=${curTaskId}&content=${content}&status=${status}&start=${start}&end=${end}`,
         { method: 'POST' }
     );
 
     if (!response.ok) {
         const errorMessage = await response.text();
-        throw new Error(`${content} 추가 실패: ${errorMessage || response.status}`);
+        throw new Error(`${content} 수정 실패: ${errorMessage || response.status}`);
     }
-
+    
     closeEditTaskModal();
     await loadDatas();
     renderTaskTable();

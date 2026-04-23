@@ -73,14 +73,22 @@ public class TaskController {
     public void modifyTask(
             @RequestParam(name = "taskId") Integer taskId,
             @RequestParam(name = "content", required = false) String content,
-            @RequestParam(name = "status", required = false) String status) {
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "start", required = false) LocalDate start,
+            @RequestParam(name = "end", required = false) LocalDate end) {
         try {
             Task task = taskService.getTaskById(taskId);
-            if(content != null) {
+            if (content != null) {
                 taskService.taskModifyContent(task, content);
             }
             if(status != null) {
                 taskService.taskModifyStatus(task, Integer.parseInt(status));
+            }
+            if(start != null && end != null){
+                if(start.isEqual(end) || start.isBefore(end)) {
+                    taskService.taskModifyStartAt(task, start);
+                    taskService.taskModifyEndAt(task, end);
+                }
             }
             return;
         } catch (RuntimeException e) {
@@ -113,36 +121,6 @@ public class TaskController {
             User member = userService.getUserById(memberId);
             if(task.getUsers().contains(member)){
                 taskService.removeMember(task, member);
-            }
-            return;
-        } catch (RuntimeException e) {
-            throw new IllegalArgumentException(e.getMessage());
-        }
-    }
-    
-    @PostMapping("/modifyStart")
-    public void modifyStartAt(
-            @RequestParam(name = "taskId") Integer taskId,
-            @RequestParam(name = "start") LocalDate start) {
-        try {
-            Task task = taskService.getTaskById(taskId);
-            if(task.getEndAt().isEqual(start) || task.getEndAt().isAfter(start)){
-                taskService.taskModifyStartAt(task, start);
-            }
-            return;
-        } catch (RuntimeException e) {
-            throw new IllegalArgumentException(e.getMessage());
-        }
-    }
-
-    @PostMapping("/modifyEnd")
-    public void modifyEndAt(
-            @RequestParam(name = "taskId") Integer taskId,
-            @RequestParam(name = "end") LocalDate end) {
-        try {
-            Task task = taskService.getTaskById(taskId);
-            if(task.getStartAt().isEqual(end) || task.getStartAt().isBefore(end)){
-                taskService.taskModifyEndAt(task, end);
             }
             return;
         } catch (RuntimeException e) {
