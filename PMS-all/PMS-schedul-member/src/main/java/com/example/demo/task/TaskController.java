@@ -120,6 +120,36 @@ public class TaskController {
         }
     }
     
+    @PostMapping("/modifyStart")
+    public void modifyStartAt(
+            @RequestParam(name = "taskId") Integer taskId,
+            @RequestParam(name = "start") LocalDate start) {
+        try {
+            Task task = taskService.getTaskById(taskId);
+            if(task.getEndAt().isEqual(start) || task.getEndAt().isAfter(start)){
+                taskService.taskModifyStartAt(task, start);
+            }
+            return;
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
+    }
+
+    @PostMapping("/modifyEnd")
+    public void modifyEndAt(
+            @RequestParam(name = "taskId") Integer taskId,
+            @RequestParam(name = "end") LocalDate end) {
+        try {
+            Task task = taskService.getTaskById(taskId);
+            if(task.getStartAt().isEqual(end) || task.getStartAt().isBefore(end)){
+                taskService.taskModifyEndAt(task, end);
+            }
+            return;
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
+    }
+    
     // // 일감 일정 조정: 일정 관리에서 taskService.taskModifyStartAt(task, startAt)/EndAt 으로 처리
     
     // // 프로젝트 개요에서 해당 멤버의 task가 보이긴 해야하는데 개요 페이지 어떻게 하시나요

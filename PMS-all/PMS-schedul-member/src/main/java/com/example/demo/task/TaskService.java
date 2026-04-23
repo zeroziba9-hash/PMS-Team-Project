@@ -9,7 +9,6 @@ import java.util.List;
 
 import com.example.demo.project.Project;
 import com.example.demo.user.User;
-import com.example.demo.user.UserRepository;
 import com.example.demo.user.UserService;
 
 @Service
