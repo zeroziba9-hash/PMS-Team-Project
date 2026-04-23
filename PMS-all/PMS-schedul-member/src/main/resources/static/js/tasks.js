@@ -1,8 +1,10 @@
 const API_BASE = 'http://localhost:8080/api';
-let allUsers = [];
 let projectMembers = [];
 let selectedProjectId = null;
 let projectTasks = [];
+let taskMembers = []; // 현재 태스크 멤버 목록
+let selectedAvailableUser = null; // 왼쪽 리스트에서 현재 선택된 사용자
+let curUserId = -1;
 
 document.addEventListener('DOMContentLoaded', () => {
     // URL에서 projectId 추출 (예: /project/1/members -> 1)
@@ -12,13 +14,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectedProjectId) {
         initProjectData();
     }
-    
+
+    curUserId = document.getElementById("userId").value;
+
     setupEventListeners();
 });
 
 async function initProjectData() {
-    await loadMembers();
-    renderMembersTable();
+    await loadDatas();
+    renderTaskTable();
 }
 
 function setupEventListeners() {
@@ -70,24 +74,19 @@ function setupEventListeners() {
 // 사용자 데이터 로드 플래그 (중복 로드 방지)
 let isLoadingUsers = false;
 
-async function loadMembers() {
+async function loadDatas() {
     if (isLoadingUsers) return; // 이미 로드 중이면 중단
     
     isLoadingUsers = true;
     
     try {
-        // 전체 사용자 로드 (한 번만)
-        const usersResponse = await fetch(`${API_BASE}/members/project/${selectedProjectId}`);
-        if (!usersResponse.ok) throw new Error('사용자 로드 실패');
-        allUsers = await usersResponse.json();
-
         // 프로젝트 멤버 로드
         const membersResponse = await fetch(`${API_BASE}/members/project/${selectedProjectId}`);
         if (!membersResponse.ok) throw new Error('멤버 로드 실패');
         projectMembers = await membersResponse.json();
 
-        // 프로젝트 일감 로드
-        const tasksResponse = await fetch(`${API_BASE}/tasks/project/${selectedProjectId}`);
+        // 본인 일감 로드
+        const tasksResponse = await fetch(`${API_BASE}/tasks/project/${selectedProjectId}/${curUserId}`);
         if (!tasksResponse.ok) throw new Error('일감 로드 실패');
         projectTasks = await tasksResponse.json();
     } catch (error) {
@@ -97,7 +96,7 @@ async function loadMembers() {
     }
 }
 
-function renderMembersTable() {
+function renderTaskTable() {
     const tbody = document.getElementById('membersTableBody');
     
     if (projectTasks.length === 0) {
@@ -108,13 +107,13 @@ function renderMembersTable() {
     tbody.innerHTML = projectTasks.map(task => `
         <tr>
             <td>${task.content}</td>
-            <td>${task.status}</td>
+            <td>${task.status==0?"시작":task.status==1?"진행중":task.status==2?"완료":"오류"}</td>
             <td>${task.startAt}</td>
             <td>${task.endAt}</td>
             <td>
                 <div class="action-buttons">
                     <button class="btn-action" onclick="openEditTaskModal(${task.id}, '${task.content}', ${task.status})">테스크 수정</button>
-                    <button class="btn-action btn-delete" onclick="editMember(${task.id})">멤버 변경</button>
+                    <button class="btn-action" onclick="editMember(${task.id})">멤버 변경</button>
                 </div>
             </td>
         </tr>
@@ -142,6 +141,14 @@ async function openEditTaskModal(taskId, taskContent, taskStatus) {
     if (contentInput) {
         contentInput.value = taskContent;
     }
+    const statusInput = document.getElementById('status');
+    if (statusInput) {
+        statusInput.value = taskStatus;
+    }
+    const curTask = document.getElementById('curTaskId');
+    if(curTask){
+        curTask.value = taskId;        
+    }
 }
 
 async function editMember(taskId) {
@@ -151,33 +158,66 @@ async function editMember(taskId) {
     // 2. 초기화
     const searchInput = document.getElementById('userSearch');
     if (searchInput) searchInput.value = '';
+    const curTask = document.getElementById('curTaskIdMember');
+    if(curTask){
+        curTask.value = taskId;
+    }    
     
     // 3. 데이터 로드 및 렌더링
-    await loadMembers();
+    await loadDatas();
+    taskMembers = projectTasks.find(f=>f.id == taskId).users;
     renderDualLists();
 }
 
 function renderDualLists() {
     const searchTerm = document.getElementById('userSearch')?.value.toLowerCase() || '';
     const projectMemberIds = new Set(projectMembers.map(m => m.user.id));
+    const pendingUserIds = new Set(taskMembers.map(u => u.id));
+    const taskUserIds = new Set(taskMembers.map(u => u.id));
 
-    // 왼쪽 리스트: 프로젝트 멤버가 아니고, 추가 대기 목록에도 없는 사용자 검색
-    const availableUsers = allUsers.filter(user => 
-        !projectMemberIds.has(user.id) && 
-        !pendingUserIds.has(user.id) &&
-        (user.name.toLowerCase().includes(searchTerm) || user.id.toString().includes(searchTerm))
+    // 왼쪽 리스트: 프로젝트 멤버이고 일감 멤버 아니고
+    const availableUsers = projectMembers.filter(user => 
+        !taskUserIds.has(user.id) &&
+        (user.user.name.toLowerCase().includes(searchTerm) || user.id.toString().includes(searchTerm))
     );
+
+    const availableList = document.getElementById('availableUsersList');
+    if (availableList) {
+        availableList.innerHTML = availableUsers.map(user => `
+            <div class="user-item ${selectedAvailableUser?.id == user.id ? 'selected' : ''}" 
+                 onclick="selectAvailableUser('${user.id}')">
+                ${user.user.name} (${user.id})
+            </div>
+        `).join('');
+    }
+
+    const selectedList = document.getElementById('selectedUsersList');
+    if (selectedList) {
+        selectedList.innerHTML = taskMembers.map(user => `
+            <div class="user-item">
+                ${user.name} (${user.id})
+                <button class="btn-remove-item" onclick="removePendingUser('${user.id}')">×</button>
+            </div>
+        `).join('');
+    }
 }
 
 function selectAvailableUser(userId) {
+    selectedAvailableUser = projectMembers.find(u => u.id == userId);
     renderDualLists();
 }
 
 function moveToRight() {
+    if (selectedAvailableUser) {
+        taskMembers.push(selectedAvailableUser.user);
+        selectedAvailableUser = null;
+        renderDualLists();
+    }
     renderDualLists();
 }
 
 function removePendingUser(userId) {
+    taskMembers = taskMembers.filter(u => u.id != userId);
     renderDualLists();
 }
 
@@ -194,15 +234,98 @@ function closeEditTaskModal() {
 }
 
 async function confirmAddMember() {
-    
+    if (taskMembers.length === 0) {
+        alert('일감의 멤버는 비워둘 수 없습니다.');
+        return;
+    }
+
+    let curTaskId = -1;
+    const curTask = document.getElementById('curTaskIdMember');
+    if(curTask){
+        curTaskId = curTask.value;
+    }
+
+    let taskMemberIds = taskMembers.map(f=>f.id);
+    let removeUsers = projectMembers.filter(f=>!taskMemberIds.includes(f.user.id));
+
+    try {
+        for (const user of removeUsers) {
+            const response = await fetch(
+                `${API_BASE}/tasks/removeMember?taskId=${curTaskId}&memberId=${user.id}`,
+                { method: 'POST' }
+            );
+
+            if (!response.ok) {
+                const errorMessage = await response.text();
+                throw new Error(`${user.name} 제거 실패: ${errorMessage || response.status}`);
+            }
+        }
+        for (const user of taskMembers) {
+            const response = await fetch(
+                `${API_BASE}/tasks/addMember?taskId=${curTaskId}&memberId=${user.id}`,
+                { method: 'POST' }
+            );
+
+            if (!response.ok) {
+                const errorMessage = await response.text();
+                throw new Error(`${user.name} 추가 실패: ${errorMessage || response.status}`);
+            }
+        }
+
+    } catch (error) {
+        console.error('멤버 오류:', error);
+        alert(`멤버 변경 실패: ${error.message}`);
+    } finally {
+        closeAddMemberModal();
+        await loadDatas();
+        renderTaskTable();
+    }
 }
 
 async function confirmAddTask() {
-    
+    let content = document.getElementById("taskContent").value;
+
+    const response = await fetch(
+        `${API_BASE}/tasks?projectId=${selectedProjectId}&content=${content}&creatorId=${curUserId}`,
+        { method: 'POST' }
+    );
+
+    if (!response.ok) {
+        const errorMessage = await response.text();
+        throw new Error(`${content} 추가 실패: ${errorMessage || response.status}`);
+    }
+    closeAddTaskModal();
+    await loadDatas();
+    renderTaskTable();
 }
 
 async function confirmEditTask() {
-    
+    let content = document.getElementById("taskEditContent").value;
+    let statusTxt = document.getElementById("status").value;
+    let status  = Number.parseInt(statusTxt);
+    let curTaskId = -1;
+    const curTask = document.getElementById('curTaskId');
+    if(curTask){
+        curTaskId = curTask.value;
+    }
+    if(Number.isNaN(status)){
+        //솔직히 이럴 일은 없을텐데
+        return;
+    }
+
+    const response = await fetch(
+        `${API_BASE}/tasks/modify?taskId=${curTaskId}&content=${content}&status=${status}`,
+        { method: 'POST' }
+    );
+
+    if (!response.ok) {
+        const errorMessage = await response.text();
+        throw new Error(`${content} 추가 실패: ${errorMessage || response.status}`);
+    }
+
+    closeEditTaskModal();
+    await loadDatas();
+    renderTaskTable();
 }
 
 async function deleteMember(memberId) {
@@ -218,8 +341,8 @@ async function deleteMember(memberId) {
         if (!response.ok) throw new Error('멤버 제거 실패');
         
         alert('멤버가 제거되었습니다');
-        await loadMembers();
-        renderMembersTable();
+        await loadDatas();
+        renderTaskTable();
     } catch (error) {
         console.error('멤버 제거 오류:', error);
         alert('멤버 제거 중 오류가 발생했습니다');

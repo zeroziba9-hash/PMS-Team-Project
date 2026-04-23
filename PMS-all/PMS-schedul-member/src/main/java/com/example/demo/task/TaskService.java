@@ -9,15 +9,20 @@ import java.util.List;
 
 import com.example.demo.project.Project;
 import com.example.demo.user.User;
+import com.example.demo.user.UserRepository;
+import com.example.demo.user.UserService;
 
 @Service
 public class TaskService {
     
     @Autowired
     private TaskRepository taskRepository;
+	@Autowired
+    private UserService userService;
     
     public Task createTask(Project project, User creator, String content) {
         Task task = new Task();
+		task.setProject(project);
         List<User> members = new ArrayList<User>();
         members.add(creator);
         task.setUsers(members);
@@ -29,14 +34,43 @@ public class TaskService {
         return task;
     }
 
+	/**
+     * 특정 프로젝트의 모든 업무를 조회합니다.
+     */
     public List<Task> getTasksByProject(Integer projectId) {
         return taskRepository.findByProjectId(projectId);
     }
-    
+
+    public List<Task> getTasksByProjectAndUser(Integer projectId, Integer userId) {
+		List<Task> projectTask = taskRepository.findByProjectId(projectId);
+		List<Task> result = new ArrayList<Task>();
+		User user = userService.getUserById(userId);
+		for (Task task : projectTask) {
+			if(task.getUsers().contains(user)){
+				result.add(task);
+			}
+		}
+        return result;
+    }
+        
+    /**
+     * 특정 기간 내에 시작되는 프로젝트 업무들을 조회합니다. (캘린더 뷰 등에 사용)
+     * 
+     * @param projectId 프로젝트 ID
+     * @param startAt 범위 시작일
+     * @param endAt 범위 종료일
+     * @return 해당 기간 내의 업무 리스트
+     */
     public List<Task> getTasksByProjectAndDateRange(Integer projectId, LocalDate startAt, LocalDate endAt) {
         return taskRepository.findByProjectAndDates(projectId, startAt, endAt);
     }
     
+	    /**
+     * 업무 ID로 상세 정보를 조회합니다.
+     * 
+     * @param taskId 업무 ID
+     * @return 업무 엔티티 (없으면 null)
+     */
     public Task getTaskById(Integer taskId) {
         return taskRepository.findById(taskId).orElse(null);
     }
