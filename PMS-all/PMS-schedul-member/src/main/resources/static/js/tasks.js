@@ -114,7 +114,7 @@ function renderTaskTable() {
             <td>
                 <div class="action-buttons">
                     <button class="btn-action" onclick="openEditTaskModal(${task.id}, '${task.content}', ${task.status}, '${task.startAt}', '${task.endAt}')">테스크 수정</button>
-                    <button class="btn-action" onclick="editMember(${task.id})">멤버 변경</button>
+                    ${task.user.id == curUserId?'<button class="btn-action" onclick="editMember('+task.id+')">멤버 변경</button>':''}
                 </div>
             </td>
         </tr>
