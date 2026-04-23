@@ -1,36 +1,21 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notion Lite PMS</title>
-    <link rel="stylesheet" href="css/members.css">
+    <link rel="stylesheet" th:href="@{/css/members.css}">
 </head>
 <body>
     <div class="wrapper">
         <!-- 사이드바 -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h1>Notion Lite PMS</h1>
-            </div>
-            <nav class="sidebar-menu">
-                <ul>
-                    <li><a href="#">프로젝트 개요</a></li>
-                    <li class="active"><a href="members.html">멤버 관리</a></li>
-                    <li><a href="#">테스크 관리</a></li>
-                    <li><a href="schedule.html">일정 관리</a></li>
-                </ul>
-            </nav>
-        </aside>
+        <div th:replace="~{fragments/sidebar :: sidebar('members')}"></div>
 
         <!-- 메인 콘텐츠 -->
         <main class="main-content">
             <div class="page-header">
                 <h1>멤버 관리</h1>
                 <div class="header-controls">
-                    <select id="projectId" class="project-select">
-                        <option value="">프로젝트 선택</option>
-                    </select>
                     <button id="addMemberBtn" class="btn-add-member">+ 멤버 추가</button>
                 </div>
             </div>
@@ -42,7 +27,7 @@
                             <th>이름</th>
                             <th>이메일</th>
                             <th>역할</th>
-                            <th>참여일</th>
+                            <th></th>
                             <th>관리</th>
                         </tr>
                     </thead>
@@ -64,18 +49,29 @@
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label>사용자 선택</label>
-                    <select id="userSelect">
-                        <option value="">사용자를 선택하세요</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>역할</label>
-                    <select id="roleSelect">
-                        <option value="false">CONTRIBUTOR</option>
-                        <option value="true">ADMIN</option>
-                    </select>
+                <div class="dual-list-container">
+                    <!-- 왼쪽: 전체 사용자 목록 (검색 가능) -->
+                    <div class="list-column">
+                        <label for="userSearch">사용자 검색</label>
+                        
+                        <div id="availableUsersList" class="user-list-box">
+                            <!-- JS에서 동적으로 생성됨 -->
+                        </div>
+                        <input type="text" id="userSearch" placeholder="이름 또는 ID 검색..." class="search-input">
+                    </div>
+
+                    <!-- 중앙: 이동 버튼 -->
+                    <div class="list-controls">
+                        <button id="moveToRightBtn" class="btn-move" title="추가 리스트로 이동">&gt;</button>
+                    </div>
+
+                    <!-- 오른쪽: 추가 예정 멤버 목록 -->
+                    <div class="list-column">
+                        <label>추가될 멤버 목록</label>
+                        <div id="selectedUsersList" class="user-list-box">
+                            <!-- JS에서 동적으로 생성됨 -->
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -85,6 +81,6 @@
         </div>
     </div>
 
-    <script src="js/members.js"></script>
+    <script th:src="@{/js/members.js}"></script>
 </body>
 </html>

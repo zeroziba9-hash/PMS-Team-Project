@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<aside th:fragment="sidebar(activePage)" class="sidebar">
+    <div class="sidebar-header">
+        <h1>Notion Lite PMS</h1>
+    </div>
+    <nav class="sidebar-menu">
+        <ul>
+            <li th:class="${activePage == 'index' ? 'active' : ''}">
+                <a th:href="@{/project/{id}/index(id=${projectId})}">프로젝트 개요</a>
+            </li>
+            <li th:class="${activePage == 'members' ? 'active' : ''}" th:if="${projectId != null}">
+                <a th:href="@{/project/{id}/members(id=${projectId})}">멤버 관리</a>
+            </li>
+            <li th:class="${activePage == 'tasks' ? 'active' : ''}" th:if="${projectId != null}">
+                <a th:href="@{/project/{id}/tasks(id=${projectId})}">테스크 관리</a></li>
+            <li th:class="${activePage == 'schedule' ? 'active' : ''}" th:if="${projectId != null}">
+                <a th:href="@{/project/{id}/schedule(id=${projectId})}">일정 관리</a></li>
+        </ul>
+    </nav>
+</aside>
+</html>

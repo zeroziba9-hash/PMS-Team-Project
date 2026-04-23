@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion Lite PMS</title>
+    <link rel="stylesheet" th:href="@{/css/members.css}">
+</head>
+<body>
+    <div class="wrapper">
+        <!-- 사이드바 -->
+        <div th:replace="~{fragments/sidebar :: sidebar('tasks')}"></div>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1>테스크 관리</h1>
+                <div class="header-controls">
+                    <button id="addTaskBtn" class="btn-add-member">+ 테스크 추가</button>
+                </div>
+            </div>
+
+            <div class="content">
+                <table class="members-table">
+                    <thead>
+                        <tr>
+                            <th>테스크</th>
+                            <th>상태</th>
+                            <th>시작일</th>
+                            <th>종료일</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersTableBody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #999; padding: 30px;">프로젝트를 선택하세요</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- 모달 -->
+    <div id="addTaskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>테스크 추가</h2>
+                <button id="task-modal-close" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="taskContent">테스크 내용</label>
+                <input type="text" id="taskContent" placeholder="테스크 내용" class="search-input">
+            </div>
+            <div class="modal-footer">
+                <button id="task-btn-cancel" class="btn-cancel">취소</button>
+                <button id="confirmAddTaskBtn" class="btn-confirm">추가</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editTaskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>테스크 수정</h2>
+                <button id="task-edit-modal-close" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="taskContent">테스크 내용</label>
+                <input type="hidden" id="curTaskId">
+                <input type="text" id="taskEditContent" placeholder="테스크 내용" class="search-input">
+                <select id="status">
+                    <option value="0">시작</option>
+                    <option value="1">진행중</option>
+                    <option value="2">완료</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button id="task-edit-btn-cancel" class="btn-cancel">취소</button>
+                <button id="confirmEditTaskBtn" class="btn-confirm">수정</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="addMemberModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>멤버 변경</h2>
+                <input type="hidden" id="curTaskIdMember">
+                <button id="member-modal-close" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="dual-list-container">
+                    <!-- 왼쪽: 전체 사용자 목록 (검색 가능) -->
+                    <div class="list-column">
+                        <label for="userSearch">사용자 검색</label>
+                        
+                        <div id="availableUsersList" class="user-list-box">
+                            <!-- JS에서 동적으로 생성됨 -->
+                        </div>
+                        <input type="text" id="userSearch" placeholder="이름 또는 ID 검색..." class="search-input">
+                    </div>
+
+                    <!-- 중앙: 이동 버튼 -->
+                    <div class="list-controls">
+                        <button id="moveToRightBtn" class="btn-move" title="추가 리스트로 이동">&gt;</button>
+                    </div>
+
+                    <!-- 오른쪽: 추가 예정 멤버 목록 -->
+                    <div class="list-column">
+                        <label>현재 멤버 목록</label>
+                        <div id="selectedUsersList" class="user-list-box">
+                            <!-- JS에서 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="member-btn-cancel" class="btn-cancel">취소</button>
+                <button id="confirmAddBtn" class="btn-confirm">확인</button>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="userId" th:value="${currentUserId}">
+    <script th:src="@{/js/tasks.js}"></script>
+</body>
+</html>

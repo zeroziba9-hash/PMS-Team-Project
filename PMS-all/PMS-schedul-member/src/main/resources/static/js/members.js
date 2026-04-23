@@ -2,26 +2,27 @@ const API_BASE = 'http://localhost:8080/api';
 let allUsers = [];
 let projectMembers = [];
 let selectedProjectId = null;
+let pendingUsers = []; // 추가 대기 중인 사용자 목록
+let selectedAvailableUser = null; // 왼쪽 리스트에서 현재 선택된 사용자
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadProjects();
+    // URL에서 projectId 추출 (예: /project/1/members -> 1)
+    const pathParts = window.location.pathname.split('/');
+    selectedProjectId = pathParts[2];
+
+    if (selectedProjectId) {
+        initProjectData();
+    }
+    
     setupEventListeners();
 });
 
-function setupEventListeners() {
-    // 프로젝트 선택
-    document.getElementById('projectId').addEventListener('change', async (e) => {
-        selectedProjectId = e.target.value;
-        
-        if (selectedProjectId) {
-            await loadMembers();
-            renderMembersTable();
-        } else {
-            document.getElementById('membersTableBody').innerHTML = 
-                '<tr><td colspan="5" style="text-align: center; color: #999; padding: 30px;">프로젝트를 선택하세요</td></tr>';
-        }
-    });
+async function initProjectData() {
+    await loadMembers();
+    renderMembersTable();
+}
 
+function setupEventListeners() {
     // 멤버 추가 버튼
     document.getElementById('addMemberBtn').addEventListener('click', () => {
         openAddMemberModal();
@@ -34,46 +35,39 @@ function setupEventListeners() {
     // 모달 확인 버튼
     document.getElementById('confirmAddBtn').addEventListener('click', confirmAddMember);
 
+    // 사용자 검색 입력 이벤트
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => renderDualLists());
+    }
+
+    // 화살표 버튼 이벤트 (오른쪽으로 이동)
+    const moveBtn = document.getElementById('moveToRightBtn');
+    if (moveBtn) {
+        moveBtn.addEventListener('click', moveToRight);
+    }
+
     // 모달 배경 클릭시 닫기
     document.getElementById('addMemberModal').addEventListener('click', (e) => {
-        if (e.target.id === 'addMemberModal') {
-            closeAddMemberModal();
-        }
+        if (e.target.id === 'addMemberModal') closeAddMemberModal();
     });
 }
 
-async function loadProjects() {
-    try {
-        const response = await fetch(`${API_BASE}/projects`);
-        if (!response.ok) throw new Error('프로젝트 로드 실패');
-        
-        const projects = await response.json();
-        const projectSelect = document.getElementById('projectId');
-        
-        projectSelect.innerHTML = '<option value="">프로젝트 선택</option>';
-        projects.forEach(project => {
-            const option = document.createElement('option');
-            option.value = project.id;
-            option.textContent = project.title;
-            projectSelect.appendChild(option);
-        });
-    } catch (error) {
-        console.error('프로젝트 로드 오류:', error);
-        // 테스트용 더미 데이터
-        document.getElementById('projectId').innerHTML = `
-            <option value="">프로젝트 선택</option>
-            <option value="1">프로젝트 1</option>
-            <option value="2">프로젝트 2</option>
-        `;
-    }
-}
+// 사용자 데이터 로드 플래그 (중복 로드 방지)
+let isLoadingUsers = false;
 
 async function loadMembers() {
+    if (isLoadingUsers) return; // 이미 로드 중이면 중단
+    
+    isLoadingUsers = true;
+    
     try {
-        // 전체 사용자 로드
-        const usersResponse = await fetch(`${API_BASE}/users`);
-        if (!usersResponse.ok) throw new Error('사용자 로드 실패');
-        allUsers = await usersResponse.json();
+        // 전체 사용자 로드 (한 번만)
+        if (allUsers.length === 0) {
+            const usersResponse = await fetch(`${API_BASE}/users`);
+            if (!usersResponse.ok) throw new Error('사용자 로드 실패');
+            allUsers = await usersResponse.json();
+        }
 
         // 프로젝트 멤버 로드
         const membersResponse = await fetch(`${API_BASE}/members/project/${selectedProjectId}`);
@@ -81,6 +75,8 @@ async function loadMembers() {
         projectMembers = await membersResponse.json();
     } catch (error) {
         console.error('멤버 로드 오류:', error);
+    } finally {
+        isLoadingUsers = false;
     }
 }
 
@@ -112,64 +108,109 @@ function renderMembersTable() {
     `).join('');
 }
 
-function openAddMemberModal() {
+async function openAddMemberModal() {
     if (!selectedProjectId) {
         alert('프로젝트를 먼저 선택하세요');
         return;
     }
 
-    // 프로젝트에 속하지 않은 사용자만 드롭다운에 표시
-    const projectMemberIds = new Set(projectMembers.map(m => m.user.id));
-    const availableUsers = allUsers.filter(user => !projectMemberIds.has(user.id));
-
-    const userSelect = document.getElementById('userSelect');
-    userSelect.innerHTML = '<option value="">사용자를 선택하세요</option>';
+    // 1. 모달을 먼저 표시 (사용자 경험 개선)
+    document.getElementById('addMemberModal').classList.add('show');
     
-    availableUsers.forEach(user => {
-        const option = document.createElement('option');
-        option.value = user.id;
-        option.textContent = `${user.name} (ID: ${user.id})`;
-        userSelect.appendChild(option);
-    });
+    // 2. 초기화
+    pendingUsers = [];
+    selectedAvailableUser = null;
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) searchInput.value = '';
+    
+    // 3. 데이터 로드 및 렌더링
+    await loadMembers();
+    renderDualLists();
+}
 
-    if (availableUsers.length === 0) {
-        alert('추가할 수 있는 사용자가 없습니다');
-        return;
+function renderDualLists() {
+    const searchTerm = document.getElementById('userSearch')?.value.toLowerCase() || '';
+    const projectMemberIds = new Set(projectMembers.map(m => m.user.id));
+    const pendingUserIds = new Set(pendingUsers.map(u => u.id));
+
+    // 왼쪽 리스트: 프로젝트 멤버가 아니고, 추가 대기 목록에도 없는 사용자 검색
+    const availableUsers = allUsers.filter(user => 
+        !projectMemberIds.has(user.id) && 
+        !pendingUserIds.has(user.id) &&
+        (user.name.toLowerCase().includes(searchTerm) || user.id.toString().includes(searchTerm))
+    );
+
+    const availableList = document.getElementById('availableUsersList');
+    if (availableList) {
+        availableList.innerHTML = availableUsers.map(user => `
+            <div class="user-item ${selectedAvailableUser?.id == user.id ? 'selected' : ''}" 
+                 onclick="selectAvailableUser('${user.id}')">
+                ${user.name} (${user.id})
+            </div>
+        `).join('');
     }
 
-    document.getElementById('addMemberModal').classList.add('show');
+    const selectedList = document.getElementById('selectedUsersList');
+    if (selectedList) {
+        selectedList.innerHTML = pendingUsers.map(user => `
+            <div class="user-item">
+                ${user.name} (${user.id})
+                <button class="btn-remove-item" onclick="removePendingUser('${user.id}')">×</button>
+            </div>
+        `).join('');
+    }
+}
+
+function selectAvailableUser(userId) {
+    selectedAvailableUser = allUsers.find(u => u.id == userId);
+    renderDualLists();
+}
+
+function moveToRight() {
+    if (selectedAvailableUser) {
+        pendingUsers.push(selectedAvailableUser);
+        selectedAvailableUser = null;
+        renderDualLists();
+    }
+}
+
+function removePendingUser(userId) {
+    // 선택한 유저를 제외한 나머지만 남김 (삭제 로직)
+    pendingUsers = pendingUsers.filter(u => u.id != userId);
+    renderDualLists();
 }
 
 function closeAddMemberModal() {
     document.getElementById('addMemberModal').classList.remove('show');
-    document.getElementById('userSelect').value = '';
-    document.getElementById('roleSelect').value = 'false';
 }
 
 async function confirmAddMember() {
-    const userId = parseInt(document.getElementById('userSelect').value);
-    const isLeader = document.getElementById('roleSelect').value === 'true';
-
-    if (!userId) {
-        alert('사용자를 선택하세요');
+    if (pendingUsers.length === 0) {
+        alert('추가할 멤버를 선택하세요');
         return;
     }
 
     try {
-        const response = await fetch(
-            `${API_BASE}/members?projectId=${selectedProjectId}&userId=${userId}&isLeader=${isLeader}`,
-            { method: 'POST' }
-        );
+        // 선택된 모든 사용자를 CONTRIBUTOR(isLeader=false)로 추가
+        for (const user of pendingUsers) {
+            const response = await fetch(
+                `${API_BASE}/members?projectId=${selectedProjectId}&userId=${user.id}&isLeader=false`,
+                { method: 'POST' }
+            );
 
-        if (!response.ok) throw new Error('멤버 추가 실패');
-        
+            if (!response.ok) {
+                const errorMessage = await response.text();
+                throw new Error(`${user.name} 추가 실패: ${errorMessage || response.status}`);
+            }
+        }
+
         alert('멤버가 추가되었습니다');
         closeAddMemberModal();
         await loadMembers();
         renderMembersTable();
     } catch (error) {
         console.error('멤버 추가 오류:', error);
-        alert('멤버 추가 중 오류가 발생했습니다');
+        alert(`멤버 추가 실패: ${error.message}`);
     }
 }
 
