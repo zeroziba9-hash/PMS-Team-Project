@@ -112,12 +112,34 @@ function renderTaskTable() {
             <td>${task.endAt}</td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn-action" onclick="openEditTaskModal(${task.id}, '${task.content}', ${task.status})">테스크 수정</button>
+                    <button class="btn-action" onclick="openEditTaskModal(${task.id}, '${task.content}', ${task.status}, '${task.startAt}', '${task.endAt}')">테스크 수정</button>
                     <button class="btn-action" onclick="editMember(${task.id})">멤버 변경</button>
                 </div>
             </td>
         </tr>
+        <tr>
+            <td colspan="5">
+                <details>
+                    <summary>메모</summary>
+                    <ul>
+                        <li>${task.content}</li>
+                        <li>임시 content 내용 기입</li>
+                        <li>task에 memo 추가 후 for문으로 넣으면</li>
+                        <li>메모 기능도 가능</li>
+                    </ul>
+                    <div>
+                        <input type="text" id="inputMemoOn${task.id}">
+                        <button class="btn-action" onclick="addMemo(${task.id})">메모 추가</button>
+                    </div>
+                </details>
+            </td>
+        </tr>
     `).join('');
+}
+
+async function addMemo(taskId) {
+    let memo = document.getElementById('inputMemoOn'+taskId).value;
+    console.log(memo+" 입력 시도");    
 }
 
 async function openAddTaskModal() {
@@ -132,10 +154,9 @@ async function openAddTaskModal() {
     if (contentInput) contentInput.value = '';
 }
 
-async function openEditTaskModal(taskId, taskContent, taskStatus) {
+async function openEditTaskModal(taskId, taskContent, taskStatus, taskStart, taskEnd) {
     // 1. 모달을 먼저 표시 (사용자 경험 개선)
     document.getElementById('editTaskModal').classList.add('show');
-    console.log(taskContent);
     // 2. 초기화    
     const contentInput = document.getElementById('taskEditContent');
     if (contentInput) {
@@ -145,6 +166,15 @@ async function openEditTaskModal(taskId, taskContent, taskStatus) {
     if (statusInput) {
         statusInput.value = taskStatus;
     }
+    const startInput = document.getElementById('taskStartDate');
+    if (startInput) {
+        startInput.value = taskStart;
+    }
+    const endInput = document.getElementById('taskEndDate');
+    if (endInput) {
+        endInput.value = taskEnd;
+    }
+    
     const curTask = document.getElementById('curTaskId');
     if(curTask){
         curTask.value = taskId;        
@@ -300,29 +330,33 @@ async function confirmAddTask() {
 }
 
 async function confirmEditTask() {
-    let content = document.getElementById("taskEditContent").value;
-    let statusTxt = document.getElementById("status").value;
-    let status  = Number.parseInt(statusTxt);
     let curTaskId = -1;
     const curTask = document.getElementById('curTaskId');
     if(curTask){
         curTaskId = curTask.value;
     }
+
+    let content = document.getElementById("taskEditContent").value;
+    let statusTxt = document.getElementById("status").value;
+    let status  = Number.parseInt(statusTxt);
+    let start = document.getElementById('taskStartDate').value;
+    let end = document.getElementById('taskEndDate').value;
+
     if(Number.isNaN(status)){
-        //솔직히 이럴 일은 없을텐데
+        //있어서는 안될 일
         return;
     }
 
     const response = await fetch(
-        `${API_BASE}/tasks/modify?taskId=${curTaskId}&content=${content}&status=${status}`,
+        `${API_BASE}/tasks/modify?taskId=${curTaskId}&content=${content}&status=${status}&start=${start}&end=${end}`,
         { method: 'POST' }
     );
 
     if (!response.ok) {
         const errorMessage = await response.text();
-        throw new Error(`${content} 추가 실패: ${errorMessage || response.status}`);
+        throw new Error(`${content} 수정 실패: ${errorMessage || response.status}`);
     }
-
+    
     closeEditTaskModal();
     await loadDatas();
     renderTaskTable();
