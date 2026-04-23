@@ -124,9 +124,8 @@ function renderTaskTable() {
                     <summary>메모</summary>
                     <ul>
                         <li>${task.content}</li>
-                        <li>임시 content 내용 기입</li>
-                        <li>task에 memo 추가 후 for문으로 넣으면</li>
-                        <li>메모 기능도 가능</li>
+                        <li>written by ${task.user.name}</li>
+                        <li>temp memo content</li>
                     </ul>
                     <div>
                         <input type="text" id="inputMemoOn${task.id}">
