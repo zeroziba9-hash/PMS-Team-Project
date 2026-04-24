@@ -1,7 +1,8 @@
 package com.example.demo.task;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -12,22 +13,26 @@ import com.example.demo.user.User;
 import com.example.demo.user.UserService;
 
 @Service
+@RequiredArgsConstructor
+@Transactional
 public class TaskService {
-    
-    @Autowired
-    private TaskRepository taskRepository;
-	@Autowired
-    private UserService userService;
+
+    private final TaskRepository taskRepository;
+    private final UserService userService;
     
     public Task createTask(Project project, User creator, String content) {
+        return createTask(project, creator, content, null, null);
+    }
+
+    public Task createTask(Project project, User creator, String content, LocalDate startAt, LocalDate endAt) {
         Task task = new Task();
-		task.setProject(project);
+        task.setProject(project);
         List<User> members = new ArrayList<User>();
         members.add(creator);
         task.setUsers(members);
         task.setContent(content);
-        task.setStartAt(LocalDate.now());
-        task.setEndAt(LocalDate.now());
+        task.setStartAt(startAt != null ? startAt : LocalDate.now());
+        task.setEndAt(endAt != null ? endAt : (startAt != null ? startAt : LocalDate.now()));
         task.setStatus(0);
         taskRepository.save(task);
         return task;
@@ -66,12 +71,15 @@ public class TaskService {
     
 	    /**
      * 업무 ID로 상세 정보를 조회합니다.
-     * 
+     *
      * @param taskId 업무 ID
-     * @return 업무 엔티티 (없으면 null)
+     * @return 업무 엔티티
+     * @throws RuntimeException 해당 ID의 업무가 없을 경우
      */
+    @Transactional(readOnly = true)
     public Task getTaskById(Integer taskId) {
-        return taskRepository.findById(taskId).orElse(null);
+        return taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("업무를 찾을 수 없습니다: " + taskId));
     }
 
     public List<Task> getAllTaskByUser(Integer projectId, Integer memberId) {
@@ -83,9 +91,14 @@ public class TaskService {
 	}
 
     public void taskModifyContent(Task task, String content) {
-		task.setContent(content);
-		taskRepository.save(task);
-	}
+        task.setContent(content);
+        taskRepository.save(task);
+    }
+
+    public void taskModifyDescription(Task task, String description) {
+        task.setDescription(description);
+        taskRepository.save(task);
+    }
 
 	public void taskModifyStatus(Task task, Integer status) {
 		task.setStatus(status);

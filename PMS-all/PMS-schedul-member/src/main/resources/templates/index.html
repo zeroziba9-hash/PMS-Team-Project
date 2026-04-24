@@ -3,15 +3,307 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion Lite PMS</title>
+    <title>Notion Lite PMS - 대시보드</title>
     <link rel="stylesheet" th:href="@{/css/schedule.css}">
+    <style>
+        /* 환영 배너 */
+        .welcome-bar {
+            background: #4f6ef7; color: #fff; border-radius: 12px;
+            padding: 20px 24px; margin-bottom: 22px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .welcome-bar h2 { font-size: 17px; font-weight: 700; margin-bottom: 3px; }
+        .welcome-bar p  { font-size: 13px; opacity: .85; }
+        .welcome-emoji  { font-size: 36px; }
+
+        /* 알림 배너 */
+        .notif-bar {
+            background: #fff3cd; color: #92400e; border: 1px solid #fcd34d;
+            border-radius: 10px; padding: 11px 16px; margin-bottom: 18px;
+            display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500;
+        }
+
+        /* 스탯 카드 그리드 */
+        .overview-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 14px; margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #fff; border-radius: 12px; padding: 18px 20px;
+            border: 1px solid #e8eaed; display: flex; align-items: center; gap: 16px;
+        }
+        .stat-icon {
+            width: 46px; height: 46px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
+            flex-shrink: 0;
+        }
+        .stat-icon-blue   { background: #eff2ff; }
+        .stat-icon-green  { background: #ecfdf5; }
+        .stat-icon-orange { background: #fff7ed; }
+        .stat-info {}
+        .stat-label { font-size: 12px; color: #9ca3af; font-weight: 500; margin-bottom: 3px; }
+        .stat-value { font-size: 28px; font-weight: 700; color: #111827; line-height: 1; }
+        .stat-value.blue   { color: #4f6ef7; }
+        .stat-value.green  { color: #10b981; }
+        .stat-value.orange { color: #f59e0b; }
+
+        /* 진행률 */
+        .progress-section {
+            background: #fff; border-radius: 12px; padding: 18px 20px;
+            border: 1px solid #e8eaed; margin-bottom: 22px;
+        }
+        .progress-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px;
+        }
+        .progress-title { font-size: 14px; font-weight: 600; color: #374151; }
+        .progress-pct   { font-size: 20px; font-weight: 700; color: #4f6ef7; }
+        .progress-bar   { background: #f3f4f6; border-radius: 8px; height: 10px; overflow: hidden; }
+        .progress-fill  { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #4f6ef7, #10b981); transition: width .7s ease; }
+        .progress-sub   { margin-top: 7px; font-size: 12px; color: #9ca3af; }
+
+        /* 하단 2단 그리드 */
+        .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        .section-card {
+            background: #fff; border-radius: 12px; padding: 18px 20px;
+            border: 1px solid #e8eaed;
+        }
+        .section-title {
+            font-size: 14px; font-weight: 700; color: #111827;
+            margin-bottom: 14px; display: flex; align-items: center; gap: 6px;
+        }
+
+        /* 멤버 칩 */
+        .member-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip {
+            display: flex; align-items: center; gap: 8px;
+            background: #f9fafb; border: 1px solid #e8eaed; border-radius: 20px;
+            padding: 5px 12px 5px 6px; font-size: 13px; color: #374151;
+        }
+        .chip-avatar {
+            width: 24px; height: 24px; border-radius: 50%; color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 700;
+        }
+        .chip-badge {
+            font-size: 10.5px; padding: 1px 6px; border-radius: 6px; font-weight: 600;
+        }
+        .chip-badge.admin  { background: #eff2ff; color: #4f6ef7; }
+        .chip-badge.member { background: #f3f4f6; color: #6b7280; }
+
+        /* 나의 태스크 리스트 */
+        .my-task-list { display: flex; flex-direction: column; gap: 8px; }
+        .my-task-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px; background: #f9fafb;
+            border-left: 3px solid #e5e7eb; transition: background .15s;
+        }
+        .my-task-item.status-0 { border-left-color: #9ca3af; }
+        .my-task-item.status-1 { border-left-color: #4f6ef7; }
+        .my-task-item.status-2 { border-left-color: #10b981; }
+        .my-task-content { flex: 1; font-size: 13px; font-weight: 500; color: #374151; }
+        .my-task-due { font-size: 11px; color: #9ca3af; }
+        .my-task-due.overdue { color: #ef4444; font-weight: 600; }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+        .status-dot.s0 { background: #9ca3af; }
+        .status-dot.s1 { background: #4f6ef7; }
+        .status-dot.s2 { background: #10b981; }
+
+        @media (max-width: 768px) {
+            .overview-grid  { grid-template-columns: 1fr 1fr; }
+            .bottom-grid    { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-    <div class="wrapper">
-        <!-- 사이드바 -->
-        <div th:replace="~{fragments/sidebar :: sidebar('index')}"></div>
-        
-    </div>
+<div class="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidebar('index')}"></div>
 
+    <main class="main-content">
+        <!-- 환영 배너 -->
+        <div class="welcome-bar" id="welcomeBar">
+            <div>
+                <h2 id="welcomeTitle">안녕하세요! 👋</h2>
+                <p id="welcomeSub">프로젝트 대시보드를 로딩 중...</p>
+            </div>
+            <div class="welcome-emoji">📋</div>
+        </div>
+
+        <!-- 마감 임박 알림 -->
+        <div id="notifBar" class="notif-bar" style="display:none">
+            <span>🔔</span>
+            <span>마감 임박: <strong id="notifTasks"></strong></span>
+        </div>
+
+        <!-- 통계 카드 3개 -->
+        <div class="overview-grid">
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-blue">📋</div>
+                <div class="stat-info">
+                    <div class="stat-label">전체 태스크</div>
+                    <div class="stat-value blue" id="statTotal">-</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-orange">🔄</div>
+                <div class="stat-info">
+                    <div class="stat-label">진행중</div>
+                    <div class="stat-value orange" id="statInProgress">-</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-green">✅</div>
+                <div class="stat-info">
+                    <div class="stat-label">완료</div>
+                    <div class="stat-value green" id="statDone">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 진행률 바 -->
+        <div class="progress-section">
+            <div class="progress-header">
+                <span class="progress-title">전체 진행률</span>
+                <span class="progress-pct" id="progressPct">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width:0%"></div>
+            </div>
+            <div class="progress-sub" id="progressSub"></div>
+        </div>
+
+        <!-- 하단 2단 -->
+        <div class="bottom-grid">
+            <!-- 나의 태스크 -->
+            <div class="section-card">
+                <div class="section-title">✅ 나의 태스크</div>
+                <div class="my-task-list" id="myTaskList">
+                    <div style="color:#9ca3af;font-size:13px;padding:10px 0;">로딩 중...</div>
+                </div>
+            </div>
+
+            <!-- 프로젝트 멤버 -->
+            <div class="section-card">
+                <div class="section-title">👥 프로젝트 멤버</div>
+                <div class="member-chips" id="memberChips">
+                    <div style="color:#9ca3af;font-size:13px;">로딩 중...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script th:src="@{/js/toast.js}"></script>
+<script th:src="@{/js/sidebar.js}"></script>
+<script>
+const API_BASE   = 'http://localhost:8080/api';
+const token         = sessionStorage.getItem('pms_token');
+const currentUserId = Number(sessionStorage.getItem('pms_userId'));
+const userName      = sessionStorage.getItem('pms_name') || '사용자';
+// URL에서 직접 추출 (Thymeleaf inline 불필요)
+const projectId     = Number(window.location.pathname.split('/')[2]) || null;
+
+if (!token) window.location.href = '/login';
+
+function authFetch(url, opts = {}) {
+    return fetch(url, { ...opts, headers: { ...(opts.headers||{}), 'Authorization': `Bearer ${token}` }});
+}
+
+async function loadDashboard() {
+    if (!projectId) return;
+
+    // 환영 메시지
+    const project = await authFetch(`${API_BASE}/projects/${projectId}`).then(r => r.ok ? r.json() : null);
+    document.getElementById('welcomeTitle').textContent = `안녕하세요, ${userName}님! 👋`;
+    document.getElementById('welcomeSub').textContent   = project ? `${project.title} 대시보드` : '프로젝트 대시보드';
+
+    // 태스크 & 멤버 병렬 로드
+    const [tasks, members] = await Promise.all([
+        authFetch(`${API_BASE}/tasks/project/${projectId}`).then(r => r.ok ? r.json() : []),
+        authFetch(`${API_BASE}/members/project/${projectId}`).then(r => r.ok ? r.json() : [])
+    ]);
+
+    // ── 통계 ──────────────────────────────────────────────────────────────────
+    const total      = tasks.length;
+    const inProgress = tasks.filter(t => t.status === 1).length;
+    const done       = tasks.filter(t => t.status === 2).length;
+    const pct        = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    document.getElementById('statTotal').textContent      = total;
+    document.getElementById('statInProgress').textContent = inProgress;
+    document.getElementById('statDone').textContent       = done;
+    document.getElementById('progressPct').textContent    = pct + '%';
+    document.getElementById('progressFill').style.width   = pct + '%';
+    document.getElementById('progressSub').textContent    = `완료 ${done}개 / 전체 ${total}개`;
+
+    // ── 마감 임박 알림 (3일 이내) ──────────────────────────────────────────────
+    const today   = new Date(); today.setHours(0,0,0,0);
+    const in3days = new Date(today); in3days.setDate(today.getDate() + 3);
+    const urgent  = tasks.filter(t => {
+        if (t.status === 2 || !t.endAt) return false;
+        const d = new Date(t.endAt + 'T00:00:00');
+        return d >= today && d <= in3days;
+    });
+    if (urgent.length > 0) {
+        document.getElementById('notifBar').style.display = 'flex';
+        document.getElementById('notifTasks').textContent =
+            urgent.map(t => t.content).join(', ') + ` (${urgent.length}건)`;
+    }
+
+    // ── 나의 태스크 ────────────────────────────────────────────────────────────
+    const myTasks = currentUserId
+        ? tasks.filter(t => t.users?.some(u => u.id === currentUserId))
+        : tasks;
+
+    const statusLabel = ['시작 전', '진행중', '완료'];
+    const myTaskList  = document.getElementById('myTaskList');
+    if (myTasks.length === 0) {
+        myTaskList.innerHTML = '<div style="color:#9ca3af;font-size:13px;padding:10px 0;">배정된 태스크가 없습니다</div>';
+    } else {
+        myTaskList.innerHTML = myTasks.map(t => {
+            const isOverdue = t.endAt && new Date(t.endAt+'T00:00:00') < today && t.status !== 2;
+            return `
+            <div class="my-task-item status-${t.status}">
+                <div class="status-dot s${t.status}"></div>
+                <div style="flex:1;min-width:0;">
+                    <div class="my-task-content">${t.content || '(제목 없음)'}</div>
+                    ${t.endAt ? `<div class="my-task-due${isOverdue?' overdue':''}">
+                        ${isOverdue ? '⚠ 마감 초과: ' : '마감: '}${t.endAt}
+                    </div>` : ''}
+                </div>
+                <span style="font-size:10.5px;padding:2px 7px;border-radius:10px;font-weight:600;
+                    background:${['#f3f4f6','#eff2ff','#ecfdf5'][t.status]};
+                    color:${['#6b7280','#4f6ef7','#10b981'][t.status]};">
+                    ${statusLabel[t.status]}
+                </span>
+            </div>`;
+        }).join('');
+    }
+
+    // ── 프로젝트 멤버 ──────────────────────────────────────────────────────────
+    const COLORS = ['#4f6ef7','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+    const chips  = document.getElementById('memberChips');
+    if (members.length === 0) {
+        chips.innerHTML = '<div style="color:#9ca3af;font-size:13px;">멤버가 없습니다</div>';
+    } else {
+        chips.innerHTML = members.map((m, i) => {
+            const name   = m.user?.name || m.user?.loginId || '?';
+            const color  = COLORS[i % COLORS.length];
+            const isAdmin = m.isLeader;
+            return `
+            <div class="chip">
+                <div class="chip-avatar" style="background:${color};">${name.charAt(0)}</div>
+                ${name}
+                <span class="chip-badge ${isAdmin ? 'admin' : 'member'}">${isAdmin ? 'ADMIN' : 'MEMBER'}</span>
+            </div>`;
+        }).join('');
+    }
+}
+
+loadDashboard();
+</script>
 </body>
 </html>

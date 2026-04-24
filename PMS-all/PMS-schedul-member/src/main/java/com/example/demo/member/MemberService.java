@@ -71,8 +71,9 @@ public class MemberService {
      */
     @Transactional
     public Member addMemberToProject(Integer projectId, Integer userId, Boolean isLeader, Integer requesterId) {
-        // [1] 권한 검증: 관리자만 멤버를 추가할 수 있음
-        if (!isUserAdmin(projectId, requesterId)) {
+        // [1] 권한 검증: 첫 멤버(프로젝트 생성자)이거나 관리자만 추가 가능
+        boolean isFirstMember = memberRepository.findByProjectId(projectId).isEmpty();
+        if (!isFirstMember && !isUserAdmin(projectId, requesterId)) {
             throw new RuntimeException("관리자 권한이 없습니다. 멤버를 추가할 수 없습니다.");
         }
 
@@ -97,23 +98,33 @@ public class MemberService {
     }
     
     /**
+     * 멤버의 역할(isLeader)을 변경합니다.
+     */
+    @Transactional
+    public Member updateMemberRole(Integer memberId, Boolean isLeader, Integer requesterId) {
+        Member target = memberRepository.findById(memberId)
+                .orElseThrow(() -> new RuntimeException("멤버를 찾을 수 없습니다."));
+        if (!isUserAdmin(target.getProject().getId(), requesterId)) {
+            throw new RuntimeException("관리자 권한이 없습니다.");
+        }
+        target.setIsLeader(isLeader);
+        return memberRepository.save(target);
+    }
+
+    /**
      * 프로젝트에서 멤버를 삭제합니다.
-     * 
+     *
      * @param memberId 삭제할 멤버의 고유 ID
      * @param requesterId 요청을 수행하는 사용자의 ID
      * @throws RuntimeException 삭제 대상이 없거나 권한이 없을 때 발생
      */
     @Transactional
     public void removeMemberFromProject(Integer memberId, Integer requesterId) {
-        Member targetMember = memberRepository.findById(memberId)
-                .orElseThrow(() -> new RuntimeException("삭제할 멤버를 찾을 수 없습니다."));
-        
-        // [1] 권한 검증: 삭제하려는 멤버의 프로젝트 관리자 권한 확인
-        if (!isUserAdmin(targetMember.getProject().getId(), requesterId)) {
-            throw new RuntimeException("관리자 권한이 없습니다. 멤버를 삭제할 수 없습니다.");
+        Member target = memberRepository.findById(memberId)
+                .orElseThrow(() -> new RuntimeException("멤버를 찾을 수 없습니다."));
+        if (!isUserAdmin(target.getProject().getId(), requesterId)) {
+            throw new RuntimeException("관리자 권한이 없습니다.");
         }
-        
-        // [2] 삭제 처리
         memberRepository.deleteById(memberId);
     }
 }

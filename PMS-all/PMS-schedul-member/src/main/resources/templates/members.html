@@ -3,84 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion Lite PMS</title>
-    <link rel="stylesheet" th:href="@{/css/members.css}">
+    <title>Notion Lite PMS - 멤버 관리</title>
+    <link rel="stylesheet" th:href="@{/css/schedule.css}">
+    <style>
+        .content { background: var(--g-0); border-radius: var(--r-lg); border: 1px solid var(--g-200); overflow: hidden; }
+        .members-table { width: 100%; border-collapse: collapse; }
+        .members-table thead { background: var(--g-50); border-bottom: 1px solid var(--g-200); }
+        .members-table th { padding: 11px 16px; text-align: left; font-size: 11.5px; font-weight: 600; color: var(--g-500); text-transform: uppercase; letter-spacing: .04em; }
+        .members-table td { padding: 14px 16px; border-bottom: 1px solid var(--g-100); font-size: 14px; color: var(--g-700); }
+        .members-table tbody tr:last-child td { border-bottom: none; }
+        .members-table tbody tr:hover { background: var(--g-50); }
+        .member-cell { display: flex; align-items: center; gap: 10px; }
+        .table-avatar { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; }
+        .role-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: var(--r-full); font-size: 12px; font-weight: 600; }
+        .role-admin { background: var(--blue-light); color: var(--blue); }
+        .role-contributor { background: var(--g-100); color: var(--g-500); }
+        .action-buttons { display: flex; gap: 6px; }
+        .btn-action { padding: 5px 11px; border: 1px solid var(--g-200); background: var(--g-0); border-radius: var(--r-sm); font-size: 12px; cursor: pointer; transition: var(--ease); color: var(--g-700); }
+        .btn-action:hover { background: var(--g-50); border-color: var(--blue); color: var(--blue); }
+        .btn-delete { border-color: #fecaca; color: #dc2626; }
+        .btn-delete:hover { background: #fef2f2 !important; border-color: #f87171 !important; color: #dc2626 !important; }
+        .btn-add-member { padding: 9px 18px; background: var(--blue); color: #fff; border: none; border-radius: var(--r-md); cursor: pointer; font-size: 14px; font-weight: 600; transition: var(--ease); }
+        .btn-add-member:hover { background: var(--blue-dark); }
+
+        /* 모달 */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.show { display: flex; }
+        .modal-content { background: var(--g-0); border-radius: var(--r-xl); width: 95%; max-width: 560px; box-shadow: var(--shadow-lg); overflow: hidden; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--g-100); }
+        .modal-header h2 { font-size: 16px; font-weight: 700; color: var(--g-900); }
+        .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--g-400); }
+        .modal-close:hover { color: var(--g-700); }
+        .modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
+        .modal-footer { display: flex; gap: 8px; padding: 14px 22px; border-top: 1px solid var(--g-100); background: var(--g-50); }
+        .btn-cancel { flex: 1; padding: 9px; border: 1px solid var(--g-200); background: var(--g-0); border-radius: var(--r-md); cursor: pointer; font-size: 14px; color: var(--g-500); }
+        .btn-cancel:hover { background: var(--g-50); }
+        .btn-confirm { flex: 1; padding: 9px; border: none; background: var(--blue); border-radius: var(--r-md); cursor: pointer; font-size: 14px; font-weight: 700; color: #fff; }
+        .btn-confirm:hover { background: var(--blue-dark); }
+
+        /* 듀얼 리스트 */
+        .dual-list-container { display: flex; gap: 10px; align-items: stretch; }
+        .list-column { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .list-column label { font-size: 12px; font-weight: 600; color: var(--g-500); }
+        .user-list-box { border: 1px solid var(--g-200); border-radius: var(--r-md); height: 220px; overflow-y: auto; background: var(--g-0); }
+        .user-item { padding: 9px 12px; cursor: pointer; font-size: 13px; color: var(--g-700); border-bottom: 1px solid var(--g-50); display: flex; justify-content: space-between; align-items: center; transition: background 0.15s; }
+        .user-item:hover { background: var(--blue-light); }
+        .user-item.selected { background: var(--blue-light); color: var(--blue); font-weight: 600; }
+        .list-controls { display: flex; align-items: center; justify-content: center; padding-top: 24px; }
+        .btn-move { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--g-200); background: var(--g-0); color: var(--blue); font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--ease); }
+        .btn-move:hover { background: var(--blue); color: #fff; }
+        .btn-remove-item { background: none; border: none; color: #f87171; font-size: 16px; cursor: pointer; padding: 0 4px; }
+        .btn-remove-item:hover { color: #ef4444; }
+        .search-input { width: 100%; padding: 8px 12px; border: 1.5px solid var(--g-200); border-radius: var(--r-md); font-size: 13px; outline: none; transition: border-color 0.2s; font-family: inherit; }
+        .search-input:focus { border-color: var(--blue); }
+
+        /* 역할 변경 */
+        .role-options { display: flex; gap: 12px; }
+        .role-option { flex: 1; display: flex; align-items: center; gap: 8px; padding: 12px; border: 1.5px solid var(--g-200); border-radius: var(--r-lg); cursor: pointer; transition: var(--ease); }
+        .role-option:hover { border-color: var(--blue); background: var(--blue-light); }
+        .role-option input[type="radio"] { accent-color: var(--blue); width: 16px; height: 16px; }
+        .role-option.checked { border-color: var(--blue); background: var(--blue-light); }
+        .role-option-label { font-size: 13.5px; font-weight: 600; color: var(--g-700); }
+        .role-option-desc { font-size: 11.5px; color: var(--g-400); margin-top: 2px; }
+    </style>
 </head>
 <body>
-    <div class="wrapper">
-        <!-- 사이드바 -->
-        <div th:replace="~{fragments/sidebar :: sidebar('members')}"></div>
+<div class="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidebar('members')}"></div>
 
-        <!-- 메인 콘텐츠 -->
-        <main class="main-content">
-            <div class="page-header">
-                <h1>멤버 관리</h1>
-                <div class="header-controls">
-                    <button id="addMemberBtn" class="btn-add-member">+ 멤버 추가</button>
+    <main class="main-content">
+        <div class="page-header">
+            <h1>멤버 관리</h1>
+            <button id="addMemberBtn" class="btn-add-member">+ 멤버 추가</button>
+        </div>
+
+        <div class="content">
+            <table class="members-table">
+                <thead>
+                    <tr>
+                        <th style="width:56px;"></th>
+                        <th>이름</th>
+                        <th>아이디</th>
+                        <th>역할</th>
+                        <th>관리</th>
+                    </tr>
+                </thead>
+                <tbody id="membersTableBody">
+                    <tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:32px;">로딩 중...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<!-- 멤버 추가 모달 -->
+<div id="addMemberModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>멤버 추가</h2>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="dual-list-container">
+                <div class="list-column">
+                    <label>사용자 검색</label>
+                    <div id="availableUsersList" class="user-list-box"></div>
+                    <input type="text" id="userSearch" placeholder="이름 또는 ID 검색..." class="search-input" style="margin-top:8px;">
                 </div>
-            </div>
-
-            <div class="content">
-                <table class="members-table">
-                    <thead>
-                        <tr>
-                            <th>이름</th>
-                            <th>이메일</th>
-                            <th>역할</th>
-                            <th></th>
-                            <th>관리</th>
-                        </tr>
-                    </thead>
-                    <tbody id="membersTableBody">
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: #999; padding: 30px;">프로젝트를 선택하세요</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </main>
-    </div>
-
-    <!-- 모달 -->
-    <div id="addMemberModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>멤버 추가</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="dual-list-container">
-                    <!-- 왼쪽: 전체 사용자 목록 (검색 가능) -->
-                    <div class="list-column">
-                        <label for="userSearch">사용자 검색</label>
-                        
-                        <div id="availableUsersList" class="user-list-box">
-                            <!-- JS에서 동적으로 생성됨 -->
-                        </div>
-                        <input type="text" id="userSearch" placeholder="이름 또는 ID 검색..." class="search-input">
-                    </div>
-
-                    <!-- 중앙: 이동 버튼 -->
-                    <div class="list-controls">
-                        <button id="moveToRightBtn" class="btn-move" title="추가 리스트로 이동">&gt;</button>
-                    </div>
-
-                    <!-- 오른쪽: 추가 예정 멤버 목록 -->
-                    <div class="list-column">
-                        <label>추가될 멤버 목록</label>
-                        <div id="selectedUsersList" class="user-list-box">
-                            <!-- JS에서 동적으로 생성됨 -->
-                        </div>
-                    </div>
+                <div class="list-controls">
+                    <button id="moveToRightBtn" class="btn-move">&#8250;</button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-cancel">취소</button>
-                <button id="confirmAddBtn" class="btn-confirm">추가</button>
+                <div class="list-column">
+                    <label>추가될 멤버</label>
+                    <div id="selectedUsersList" class="user-list-box"></div>
+                </div>
             </div>
         </div>
+        <div class="modal-footer">
+            <button class="btn-cancel">취소</button>
+            <button id="confirmAddBtn" class="btn-confirm">추가</button>
+        </div>
     </div>
+</div>
 
-    <script th:src="@{/js/members.js}"></script>
+<!-- 역할 변경 모달 -->
+<div id="roleModal" class="modal">
+    <div class="modal-content" style="max-width:380px;">
+        <div class="modal-header">
+            <h2>역할 변경</h2>
+            <button id="role-modal-close" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="roleMemberId">
+            <p id="roleMemberName" style="font-size:14px;font-weight:600;color:#374151;margin-bottom:12px;"></p>
+            <div class="role-options">
+                <label class="role-option" id="roleOptAdmin">
+                    <input type="radio" name="roleSelect" value="true">
+                    <div>
+                        <div class="role-option-label">&#128081; ADMIN</div>
+                        <div class="role-option-desc">멤버 추가/제거 권한</div>
+                    </div>
+                </label>
+                <label class="role-option" id="roleOptMember">
+                    <input type="radio" name="roleSelect" value="false" checked>
+                    <div>
+                        <div class="role-option-label">&#128100; MEMBER</div>
+                        <div class="role-option-desc">일반 팀원</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="role-btn-cancel" class="btn-cancel">취소</button>
+            <button id="confirmRoleBtn" class="btn-confirm">변경</button>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/toast.js}"></script>
+<script th:src="@{/js/sidebar.js}"></script>
+<script th:src="@{/js/members.js}"></script>
 </body>
 </html>

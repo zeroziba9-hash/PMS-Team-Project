@@ -3,13 +3,13 @@ package com.example.pmsauth.user;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "users")
+@Table(name = "user")
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private Long userId;
+    private Integer userId;
 
     @Column(nullable = false, length = 50)
     private String name;
@@ -29,7 +29,7 @@ public class User {
         this.password = password;
     }
 
-    public Long getUserId() {
+    public Integer getUserId() {
         return userId;
     }
 

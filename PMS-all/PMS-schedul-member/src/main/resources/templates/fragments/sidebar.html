@@ -1,22 +1,97 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <aside th:fragment="sidebar(activePage)" class="sidebar">
-    <div class="sidebar-header">
-        <h1>Notion Lite PMS</h1>
+
+    <!-- 프로젝트 스위처 -->
+    <div class="proj-switcher" id="projSwitcher">
+        <div class="proj-btn" onclick="toggleProjDropdown()">
+            <div class="proj-avatar" id="projAvatar">?</div>
+            <div class="proj-info">
+                <div class="proj-name" id="projName">프로젝트 로딩중...</div>
+                <div class="proj-sub">내 프로젝트</div>
+            </div>
+            <span class="proj-chevron" id="projChevron">▾</span>
+        </div>
+
+        <div class="proj-dropdown" id="projDropdown" style="display:none;">
+            <div class="proj-drop-header">프로젝트 전환</div>
+            <div id="projDropList"></div>
+            <div class="proj-drop-divider"></div>
+            <a href="/projects" class="proj-drop-all">
+                <span style="font-size:13px;">⊞</span> 전체 프로젝트 보기
+            </a>
+            <div class="proj-drop-divider"></div>
+            <div class="proj-drop-new" onclick="openNewProjectModal()">
+                <div class="proj-drop-new-icon">+</div>
+                새 프로젝트 만들기
+            </div>
+        </div>
     </div>
+
+    <!-- 메뉴 -->
     <nav class="sidebar-menu">
         <ul>
             <li th:class="${activePage == 'index' ? 'active' : ''}">
-                <a th:href="@{/project/{id}/index(id=${projectId})}">프로젝트 개요</a>
+                <a th:href="@{/project/{id}/index(id=${projectId})}">
+                    <span class="menu-icon">📊</span> 프로젝트 개요
+                </a>
             </li>
             <li th:class="${activePage == 'members' ? 'active' : ''}" th:if="${projectId != null}">
-                <a th:href="@{/project/{id}/members(id=${projectId})}">멤버 관리</a>
+                <a th:href="@{/project/{id}/members(id=${projectId})}">
+                    <span class="menu-icon">👥</span> 멤버 관리
+                </a>
             </li>
             <li th:class="${activePage == 'tasks' ? 'active' : ''}" th:if="${projectId != null}">
-                <a th:href="@{/project/{id}/tasks(id=${projectId})}">테스크 관리</a></li>
+                <a th:href="@{/project/{id}/tasks(id=${projectId})}">
+                    <span class="menu-icon">✅</span> 태스크 관리
+                </a>
+            </li>
             <li th:class="${activePage == 'schedule' ? 'active' : ''}" th:if="${projectId != null}">
-                <a th:href="@{/project/{id}/schedule(id=${projectId})}">일정 관리</a></li>
+                <a th:href="@{/project/{id}/schedule(id=${projectId})}">
+                    <span class="menu-icon">📅</span> 일정 관리
+                </a>
+            </li>
         </ul>
     </nav>
+
+    <!-- 유저 정보 -->
+    <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebarAvatar">?</div>
+        <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="sidebarUserName">로딩중...</div>
+            <button class="sidebar-logout" onclick="logout()">로그아웃</button>
+        </div>
+    </div>
+
+<!-- 새 프로젝트 생성 모달 -->
+<div id="newProjectModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;width:90%;max-width:420px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid #f0f2f5;">
+            <h2 style="font-size:16px;font-weight:700;color:#111827;margin:0;">새 프로젝트 만들기</h2>
+            <button onclick="closeNewProjectModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9ca3af;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:12px;">
+            <div>
+                <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:6px;">프로젝트 이름 *</label>
+                <input id="newProjTitle" type="text" placeholder="예) 쇼핑몰 리뉴얼 프로젝트"
+                    style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;font-family:inherit;box-sizing:border-box;"
+                    onfocus="this.style.borderColor='#4f6ef7'" onblur="this.style.borderColor='#e5e7eb'">
+            </div>
+            <div>
+                <label style="font-size:12px;font-weight:600;color:#6b7280;display:block;margin-bottom:6px;">설명 (선택)</label>
+                <textarea id="newProjDesc" placeholder="프로젝트에 대한 간단한 설명을 입력하세요"
+                    style="width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;font-family:inherit;resize:none;height:72px;box-sizing:border-box;"
+                    onfocus="this.style.borderColor='#4f6ef7'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:14px 22px;border-top:1px solid #f0f2f5;background:#fafafa;">
+            <button onclick="closeNewProjectModal()"
+                style="flex:1;padding:9px;border:1px solid #e5e7eb;background:#fff;border-radius:8px;cursor:pointer;font-size:14px;color:#6b7280;">취소</button>
+            <button onclick="submitNewProject()"
+                style="flex:1;padding:9px;border:none;background:#4f6ef7;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;color:#fff;">만들기</button>
+        </div>
+    </div>
+</div>
+
 </aside>
 </html>

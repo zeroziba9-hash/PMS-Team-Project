@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion Lite PMS - 로그인</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f7f6f3;
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh;
+        }
+        .card {
+            background: #fff; border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            padding: 40px; width: 380px;
+        }
+        .logo { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
+        .sub  { font-size: 14px; color: #9b9b9b; margin-bottom: 24px; }
+
+        /* 탭 */
+        .tabs { display: flex; gap: 0; margin-bottom: 28px; border-bottom: 2px solid #f0f0f0; }
+        .tab {
+            flex: 1; padding: 10px; text-align: center; font-size: 14px; font-weight: 600;
+            color: #aaa; cursor: pointer; border-bottom: 2px solid transparent;
+            margin-bottom: -2px; transition: .15s;
+        }
+        .tab.active { color: #5b7cff; border-bottom-color: #5b7cff; }
+
+        /* 폼 */
+        .form-section { display: none; }
+        .form-section.active { display: block; }
+        label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 6px; }
+        input[type="text"], input[type="password"] {
+            width: 100%; padding: 10px 14px;
+            border: 1.5px solid #e0e0e0; border-radius: 8px;
+            font-size: 14px; margin-bottom: 14px; outline: none; transition: border-color .2s;
+        }
+        input:focus { border-color: #5b7cff; }
+        .btn {
+            width: 100%; padding: 12px; background: #5b7cff; color: #fff;
+            border: none; border-radius: 8px; font-size: 15px; font-weight: 600;
+            cursor: pointer; margin-top: 4px; transition: background .2s;
+        }
+        .btn:hover { background: #4a68e8; }
+        .btn:disabled { background: #a0b0ff; cursor: not-allowed; }
+        .msg { font-size: 13px; margin-top: 12px; min-height: 20px; text-align: center; }
+        .msg.error   { color: #e53e3e; }
+        .msg.success { color: #48bb78; }
+        .demo-hint {
+            margin-top: 20px; padding: 12px; background: #f0f4ff;
+            border-radius: 8px; font-size: 12px; color: #5b7cff; text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="logo">📋 Notion Lite PMS</div>
+    <div class="sub">팀 프로젝트 관리 시스템</div>
+
+    <div class="tabs">
+        <div class="tab active" id="tabLogin" onclick="switchTab('login')">로그인</div>
+        <div class="tab" id="tabSignup" onclick="switchTab('signup')">회원가입</div>
+    </div>
+
+    <!-- 로그인 -->
+    <div class="form-section active" id="sectionLogin">
+        <form id="loginForm">
+            <label>아이디</label>
+            <input type="text" id="loginId" placeholder="아이디를 입력하세요" autocomplete="username" required>
+            <label>비밀번호</label>
+            <input type="password" id="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password" required>
+            <button type="submit" class="btn" id="loginBtn">로그인</button>
+        </form>
+        <div class="msg error" id="loginMsg"></div>
+        <div class="demo-hint">시드 계정: hong / 1234 &nbsp;|&nbsp; kim / 1234 &nbsp;|&nbsp; lee / 1234</div>
+    </div>
+
+    <!-- 회원가입 -->
+    <div class="form-section" id="sectionSignup">
+        <form id="signupForm">
+            <label>이름</label>
+            <input type="text" id="signupName" placeholder="이름을 입력하세요" required>
+            <label>아이디</label>
+            <input type="text" id="signupLoginId" placeholder="사용할 아이디를 입력하세요" required>
+            <label>비밀번호</label>
+            <input type="password" id="signupPassword" placeholder="비밀번호를 입력하세요" required>
+            <label>비밀번호 확인</label>
+            <input type="password" id="signupPasswordConfirm" placeholder="비밀번호를 다시 입력하세요" required>
+            <button type="submit" class="btn" id="signupBtn">가입하기</button>
+        </form>
+        <div class="msg" id="signupMsg"></div>
+    </div>
+</div>
+
+<script>
+const AUTH_BASE = 'http://localhost:8081/api/auth';
+
+function switchTab(tab) {
+    document.getElementById('sectionLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('sectionSignup').classList.toggle('active', tab === 'signup');
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
+    document.getElementById('loginMsg').textContent = '';
+    document.getElementById('signupMsg').textContent = '';
+    document.getElementById('signupMsg').className = 'msg';
+}
+
+// ── 로그인 ──
+document.getElementById('loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    const msg = document.getElementById('loginMsg');
+    btn.disabled = true; btn.textContent = '로그인 중...';
+    msg.textContent = '';
+    try {
+        const res = await fetch(`${AUTH_BASE}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                loginId: document.getElementById('loginId').value.trim(),
+                password: document.getElementById('password').value
+            })
+        });
+        if (!res.ok) { msg.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.'; return; }
+        const data = await res.json();
+        sessionStorage.setItem('pms_token',  data.token);
+        sessionStorage.setItem('pms_userId', data.userId);
+        sessionStorage.setItem('pms_name',   data.name);
+        window.location.href = `/project/${data.projectId || 1}/index`;
+    } catch {
+        msg.textContent = '서버에 연결할 수 없습니다.';
+    } finally {
+        btn.disabled = false; btn.textContent = '로그인';
+    }
+});
+
+// ── 회원가입 ──
+document.getElementById('signupForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('signupBtn');
+    const msg = document.getElementById('signupMsg');
+    const name     = document.getElementById('signupName').value.trim();
+    const loginId  = document.getElementById('signupLoginId').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const confirm  = document.getElementById('signupPasswordConfirm').value;
+
+    msg.className = 'msg error';
+    if (password !== confirm) { msg.textContent = '비밀번호가 일치하지 않습니다.'; return; }
+    if (password.length < 4)  { msg.textContent = '비밀번호는 4자 이상이어야 합니다.'; return; }
+
+    btn.disabled = true; btn.textContent = '가입 중...';
+    msg.textContent = '';
+    try {
+        const res = await fetch(`${AUTH_BASE}/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, loginId, password })
+        });
+        if (res.status === 409) { msg.textContent = '이미 사용 중인 아이디입니다.'; return; }
+        if (!res.ok) { msg.textContent = '회원가입에 실패했습니다.'; return; }
+        msg.className = 'msg success';
+        msg.textContent = '가입 완료! 로그인해주세요 🎉';
+        document.getElementById('signupForm').reset();
+        setTimeout(() => switchTab('login'), 1500);
+    } catch {
+        msg.textContent = '서버에 연결할 수 없습니다.';
+    } finally {
+        btn.disabled = false; btn.textContent = '가입하기';
+    }
+});
+</script>
+</body>
+</html>

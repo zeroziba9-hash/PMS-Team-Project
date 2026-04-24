@@ -3,115 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion Lite PMS</title>
+    <title>Notion Lite PMS - 일정 관리</title>
     <link rel="stylesheet" th:href="@{/css/schedule.css}">
-    <style>
-        /* 캘린더 너비 고정 및 세로줄 무시 효과 */
-        .calendar {
-            table-layout: fixed; /* 셀 너비를 균등하게 고정 */
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .calendar td {
-            padding: 2px 0 !important; /* 외부 CSS 오버라이드를 위해 !important 추가 */
-            height: 80px; /* 높이 축소 */
-            vertical-align: top;
-            border: 1px solid #e5e7eb;
-        }
-        .date-number {
-            padding-left: 8px;
-            margin-bottom: 2px;
-        }
-        .tasks {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .task {
-            width: 100%;
-            height: 24px; /* 고정 높이 설정으로 글자 유무와 상관없이 동일 크기 유지 */
-            margin: 0 !important;
-            border-radius: 0 !important; /* 모든 라운드 초기화 (외부 CSS 무력화) */
-            padding: 3px 8px;
-            font-size: 12px;
-            white-space: nowrap;
-            overflow: hidden;
-            z-index: 1;
-            box-sizing: border-box; /* 패딩을 포함한 전체 높이 고정 */
-            border-left: none; /* 기본 강조선 제거 */
-            background-color: #5b7cff; /* 막대 배경색 */
-            color: black;
-        }
-        /* 시작과 끝 부분만 둥글게 처리 */
-        .task-start {
-            border-top-left-radius: 4px !important;
-            border-bottom-left-radius: 4px !important;
-            border-top-right-radius: 0 !important;
-            border-bottom-right-radius: 0 !important;
-            margin-left: 4px !important;
-            width: calc(100% - 4px) !important; /* 오른쪽 끝까지 확장 */
-            border-left: 5px solid #1e3a8a; /* 시작 날짜에만 짙은 파란색 강조선 추가 */
-        }
-        .task-end {
-            border-top-right-radius: 4px !important;
-            border-bottom-right-radius: 4px !important;
-            border-top-left-radius: 0 !important;
-            border-bottom-left-radius: 0 !important;
-            margin-right: 4px !important;
-            width: calc(100% - 4px) !important; /* 왼쪽 끝부터 시작 */
-        }
-        .task-start.task-end {
-            border-radius: 4px !important;
-            margin: 0 4px !important;
-            width: calc(100% - 8px) !important;
-            border-left: 5px solid #1e3a8a !important;
-        }
-    </style>
 </head>
 <body>
-    <div class="wrapper">
-        <!-- 사이드바 -->
-        <div th:replace="~{fragments/sidebar :: sidebar('schedule')}"></div>
+<div class="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidebar('schedule')}"></div>
 
-        <!-- 메인 콘텐츠 -->
-        <main class="main-content">
-            <div class="page-header">
-                <h1>일정 관리</h1>
-            </div>
+    <main class="main-content">
+        <div class="page-header">
+            <h1>일정 관리</h1>
+        </div>
 
-            <div class="content">
-                <div class="calendar-header">
-                    <button id="prevMonth" class="month-btn">&lt;</button>
-                    <h2 id="monthYear"></h2>
-                    <button id="nextMonth" class="month-btn">&gt;</button>
-                </div>
+        <div style="padding:0 0 32px;">
 
-                <table class="calendar">
-                    <thead>
-                        <tr>
-                            <th>일</th>
-                            <th>월</th>
-                            <th>화</th>
-                            <th>수</th>
-                            <th>목</th>
-                            <th>금</th>
-                            <th>토</th>
-                        </tr>
-                    </thead>
-                    <tbody id="calendarBody">
-                    </tbody>
-                </table>
-
-                <div class="task-details">
-                    <h3>선택된 날짜의 작업</h3>
-                    <div id="taskList" class="task-list">
-                        <p>날짜를 선택하세요</p>
-                    </div>
+            <!-- 월 네비게이션 -->
+            <div class="calendar-nav">
+                <button id="prevMonth" class="month-btn">&#8249;</button>
+                <h2 id="monthYear" class="month-title"></h2>
+                <button id="nextMonth" class="month-btn">&#8250;</button>
+                <div class="calendar-legend">
+                    <div class="legend-item"><div class="legend-dot" style="background:#9ca3af;"></div> 시작 전</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#4f6ef7;"></div> 진행중</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div> 완료</div>
                 </div>
             </div>
-        </main>
-    </div>
 
-    <script th:src="@{/js/schedule.js}"></script>
+            <!-- CSS Grid 캘린더 -->
+            <div class="cal-grid" id="calGrid">
+                <!-- JS로 렌더링 -->
+            </div>
+
+            <!-- 선택 날짜 태스크 패널 -->
+            <div class="task-details" id="taskDetails">
+                <h3 id="selectedDateTitle">날짜를 선택하세요</h3>
+                <div id="taskList" class="task-list">
+                    <p class="empty-hint">날짜를 클릭하면 해당 날짜의 태스크를 볼 수 있습니다</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script th:src="@{/js/toast.js}"></script>
+<script th:src="@{/js/sidebar.js}"></script>
+<script th:src="@{/js/schedule.js}"></script>
 </body>
 </html>

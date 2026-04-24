@@ -3,125 +3,347 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion Lite PMS</title>
-    <link rel="stylesheet" th:href="@{/css/members.css}">
+    <title>Notion Lite PMS - 태스크 관리</title>
+    <link rel="stylesheet" th:href="@{/css/schedule.css}">
+    <style>
+        .filter-bar {
+            display:flex;gap:10px;align-items:center;background:#fff;border-radius:10px;
+            padding:12px 16px;border:1px solid #e8eaed;margin-bottom:18px;flex-wrap:wrap;
+        }
+        .filter-search {
+            flex:1;min-width:160px;padding:7px 12px;border:1.5px solid #e5e7eb;
+            border-radius:8px;font-size:13px;outline:none;transition:border-color .2s;
+        }
+        .filter-search:focus { border-color:#4f6ef7; }
+        .filter-status-group { display:flex;gap:4px; }
+        .filter-btn {
+            padding:6px 12px;border:1.5px solid #e5e7eb;border-radius:8px;background:#fff;
+            color:#6b7280;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;
+        }
+        .filter-btn:hover  { border-color:#4f6ef7;color:#4f6ef7; }
+        .filter-btn.active { background:#4f6ef7;color:#fff;border-color:#4f6ef7; }
+        .filter-select {
+            padding:7px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:12.5px;
+            outline:none;color:#374151;background:#fff;cursor:pointer;transition:border-color .2s;
+        }
+        .filter-select:focus { border-color:#4f6ef7; }
+        .filter-count { font-size:12px;color:#9ca3af;white-space:nowrap;margin-left:auto; }
+
+        .kanban-board { display:flex;gap:14px;align-items:flex-start; }
+        .kanban-col {
+            flex:1;min-width:250px;border-radius:12px;padding:12px;
+            background:#f3f4f6;display:flex;flex-direction:column;
+        }
+        .kanban-col-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px; }
+        .kanban-col-title { font-size:13px;font-weight:700; }
+        .col-0 .kanban-col-title { color:#6b7280; }
+        .col-1 .kanban-col-title { color:#4f6ef7; }
+        .col-2 .kanban-col-title { color:#10b981; }
+        .kanban-count { background:#fff;border-radius:10px;padding:2px 8px;font-size:12px;font-weight:700;color:#9ca3af;border:1px solid #e8eaed; }
+        .kanban-cards { display:flex;flex-direction:column;gap:8px;min-height:100px; }
+        .kanban-col.drag-over { background:#dde3ff;outline:2px dashed #4f6ef7;outline-offset:2px; }
+        .col-add-btn {
+            width:100%;margin-top:10px;padding:8px;border:1.5px dashed #d1d5db;
+            border-radius:8px;background:transparent;color:#9ca3af;font-size:12.5px;cursor:pointer;transition:.15s;
+        }
+        .col-add-btn:hover { border-color:#4f6ef7;color:#4f6ef7;background:#f5f7ff; }
+
+        .kanban-card {
+            background:#fff;border-radius:10px;padding:12px;border:1px solid #e8eaed;
+            border-left:4px solid #d1d5db;cursor:pointer;transition:box-shadow .2s,transform .15s;position:relative;
+        }
+        .kanban-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.1); }
+        .kanban-card.dragging { opacity:.45;transform:rotate(1.5deg);cursor:grabbing; }
+        .col-1 .kanban-card { border-left-color:#4f6ef7; }
+        .col-2 .kanban-card { border-left-color:#10b981; }
+        .kanban-card.overdue { border-left-color:#ef4444; }
+        .card-title { font-size:13.5px;font-weight:600;color:#111827;margin-bottom:5px;word-break:break-word; }
+        .card-dates { font-size:11px;color:#9ca3af;margin-bottom:7px; }
+        .card-dates.overdue-date { color:#ef4444;font-weight:600; }
+        .card-members { display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px; }
+        .card-avatar { width:22px;height:22px;border-radius:50%;background:#4f6ef7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700; }
+        .card-footer { display:flex;gap:4px; }
+        .card-btn { flex:1;padding:5px 0;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s; }
+        .card-btn-edit   { background:#f0f2ff;color:#4f6ef7; }
+        .card-btn-edit:hover { background:#dde3ff; }
+        .card-btn-member { background:#f0faf5;color:#10b981; }
+        .card-btn-member:hover { background:#d1fae5; }
+        .card-btn-del    { background:#fff1f0;color:#ef4444; }
+        .card-btn-del:hover { background:#fecaca; }
+        .card-badge-comment { position:absolute;top:8px;right:8px;background:#4f6ef7;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;font-weight:700; }
+        .card-empty { text-align:center;color:#9ca3af;font-size:12.5px;padding:24px 12px; }
+
+        .notif-bar { background:#fff3cd;color:#92400e;border:1px solid #fcd34d;border-radius:10px;padding:11px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500; }
+
+        .detail-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:100; }
+        .detail-overlay.show { display:block; }
+        .detail-panel {
+            position:fixed;right:0;top:0;bottom:0;width:420px;background:#fff;
+            box-shadow:-4px 0 28px rgba(0,0,0,.12);z-index:101;overflow-y:auto;padding:26px 22px;
+            display:flex;flex-direction:column;gap:16px;transform:translateX(100%);transition:transform .25s ease;
+        }
+        .detail-panel.show { transform:translateX(0); }
+        .detail-close { position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#9ca3af; }
+        .detail-close:hover { color:#374151; }
+        .detail-title { font-size:17px;font-weight:700;color:#111827;padding-right:28px; }
+        .detail-meta  { font-size:12px;color:#9ca3af;line-height:1.6; }
+        .detail-section-title { font-size:12.5px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px; }
+
+        .desc-area { width:100%;border:1.5px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;min-height:80px;outline:none;color:#374151;transition:border-color .2s; }
+        .desc-area:focus { border-color:#4f6ef7; }
+        .desc-save-btn { margin-top:6px;padding:6px 14px;background:#4f6ef7;color:#fff;border:none;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .15s; }
+        .desc-save-btn:hover { background:#3b55d9; }
+
+        .comment-list { display:flex;flex-direction:column;gap:8px;margin-bottom:10px; }
+        .comment-item { background:#f9fafb;border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start; }
+        .comment-avatar { width:28px;height:28px;border-radius:50%;background:#4f6ef7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0; }
+        .comment-body { flex:1; }
+        .comment-author { font-size:12px;font-weight:700;color:#374151; }
+        .comment-text  { font-size:13px;color:#4b5563;margin-top:2px;word-break:break-all; }
+        .comment-time  { font-size:10px;color:#d1d5db;margin-top:3px; }
+        .comment-del   { background:none;border:none;color:#d1d5db;cursor:pointer;font-size:16px; }
+        .comment-del:hover { color:#ef4444; }
+        .comment-input-row { display:flex;gap:8px; }
+        .comment-input { flex:1;border:1.5px solid #e5e7eb;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;font-family:inherit; }
+        .comment-input:focus { border-color:#4f6ef7; }
+        .comment-send { padding:8px 14px;background:#4f6ef7;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600; }
+        .comment-send:hover { background:#3b55d9; }
+
+        .file-list { display:flex;flex-direction:column;gap:6px;margin-bottom:10px; }
+        .file-item { display:flex;align-items:center;gap:8px;background:#f9fafb;border-radius:8px;padding:8px 12px;border:1px solid #f0f2f5; }
+        .file-icon { font-size:18px; }
+        .file-info { flex:1; }
+        .file-name { font-size:13px;font-weight:600;color:#374151;word-break:break-all; }
+        .file-size { font-size:11px;color:#9ca3af; }
+        .file-download { color:#4f6ef7;text-decoration:none;font-size:12px;font-weight:600; }
+        .file-download:hover { text-decoration:underline; }
+        .file-del { background:none;border:none;color:#d1d5db;cursor:pointer;font-size:16px; }
+        .file-del:hover { color:#ef4444; }
+        .file-upload-area { border:1.5px dashed #d1d5db;border-radius:8px;padding:14px;text-align:center;cursor:pointer;color:#9ca3af;font-size:13px;transition:.15s; }
+        .file-upload-area:hover { border-color:#4f6ef7;color:#4f6ef7;background:#f5f7ff; }
+        #fileInput { display:none; }
+
+        .modal { display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center; }
+        .modal.show { display:flex; }
+        .modal-content { background:#fff;border-radius:14px;padding:0;width:440px;box-shadow:0 10px 40px rgba(0,0,0,.18); }
+        .modal-header { display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid #f0f2f5; }
+        .modal-header h2 { font-size:16px;font-weight:700;color:#111827; }
+        .modal-close { background:none;border:none;font-size:22px;cursor:pointer;color:#9ca3af; }
+        .modal-close:hover { color:#374151; }
+        .modal-body { padding:18px 22px;display:flex;flex-direction:column;gap:10px; }
+        .modal-body label { font-size:12.5px;font-weight:600;color:#6b7280;display:block;margin-bottom:3px; }
+        .modal-footer { display:flex;gap:8px;padding:14px 22px;border-top:1px solid #f0f2f5;background:#fafafa;border-radius:0 0 14px 14px; }
+        .btn-cancel  { flex:1;padding:9px;border:1px solid #e5e7eb;background:#fff;border-radius:8px;cursor:pointer;font-size:14px;color:#6b7280; }
+        .btn-confirm { flex:1;padding:9px;border:none;background:#4f6ef7;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;color:#fff; }
+        .btn-confirm:hover { background:#3b55d9; }
+        .date-row { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+        .modal-input { width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13.5px;outline:none;font-family:inherit;transition:border-color .2s; }
+        .modal-input:focus { border-color:#4f6ef7; }
+        select.modal-input { cursor:pointer; }
+
+        .search-input { width:100%;padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;transition:border-color .2s;font-family:inherit; }
+        .search-input:focus { border-color:#4f6ef7; }
+        .dual-list-container { display:flex;gap:10px;align-items:stretch; }
+        .list-column { flex:1;display:flex;flex-direction:column;gap:6px; }
+        .user-list-box { border:1px solid #e5e7eb;border-radius:8px;min-height:120px;max-height:160px;overflow-y:auto;padding:4px; }
+        .user-item { padding:7px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:#374151;display:flex;justify-content:space-between;align-items:center; }
+        .user-item:hover { background:#f5f7ff; }
+        .user-item.selected { background:#eff2ff; }
+        .btn-remove-item { background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px; }
+        .list-controls { display:flex;align-items:center; }
+        .btn-move { padding:6px 10px;background:#4f6ef7;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:18px; }
+        .btn-add-task { padding:9px 18px;background:#4f6ef7;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;transition:.15s; }
+        .btn-add-task:hover { background:#3b55d9; }
+    </style>
 </head>
 <body>
-    <div class="wrapper">
-        <!-- 사이드바 -->
-        <div th:replace="~{fragments/sidebar :: sidebar('tasks')}"></div>
+<div class="wrapper">
+    <div th:replace="~{fragments/sidebar :: sidebar('tasks')}"></div>
 
-        <!-- 메인 콘텐츠 -->
-        <main class="main-content">
-            <div class="page-header">
-                <h1>테스크 관리</h1>
-                <div class="header-controls">
-                    <button id="addTaskBtn" class="btn-add-member">+ 테스크 추가</button>
+    <main class="main-content">
+        <div class="page-header">
+            <h1>태스크 관리</h1>
+            <button id="addTaskBtn" class="btn-add-task">+ 태스크 추가</button>
+        </div>
+
+        <div id="notifBar" class="notif-bar" style="display:none">
+            🔔 마감 임박: <span id="notifTasks" style="font-weight:700;margin-left:4px;"></span>
+        </div>
+
+        <div class="filter-bar">
+            <input type="text" class="filter-search" id="filterSearch" placeholder="🔍  태스크 검색...">
+            <div class="filter-status-group">
+                <button class="filter-btn active" data-status="all">전체</button>
+                <button class="filter-btn" data-status="0">시작 전</button>
+                <button class="filter-btn" data-status="1">진행중</button>
+                <button class="filter-btn" data-status="2">완료</button>
+            </div>
+            <select class="filter-select" id="filterMember">
+                <option value="all">전체 멤버</option>
+            </select>
+            <span class="filter-count" id="filterCount"></span>
+        </div>
+
+        <div class="kanban-board">
+            <div class="kanban-col col-0" id="col-0" data-status="0">
+                <div class="kanban-col-header">
+                    <span class="kanban-col-title">📋 시작 전</span>
+                    <span class="kanban-count" id="count-0">0</span>
                 </div>
+                <div class="kanban-cards" id="cards-0"></div>
+                <button class="col-add-btn" onclick="openAddTaskModal()">+ 태스크 추가</button>
             </div>
-
-            <div class="content">
-                <table class="members-table">
-                    <thead>
-                        <tr>
-                            <th>테스크</th>
-                            <th>상태</th>
-                            <th>시작일</th>
-                            <th>종료일</th>
-                            <th>관리</th>
-                        </tr>
-                    </thead>
-                    <tbody id="membersTableBody">
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: #999; padding: 30px;">프로젝트를 선택하세요</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="kanban-col col-1" id="col-1" data-status="1">
+                <div class="kanban-col-header">
+                    <span class="kanban-col-title">🔄 진행중</span>
+                    <span class="kanban-count" id="count-1">0</span>
+                </div>
+                <div class="kanban-cards" id="cards-1"></div>
             </div>
-        </main>
-    </div>
-
-    <!-- 모달 -->
-    <div id="addTaskModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>테스크 추가</h2>
-                <button id="task-modal-close" class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <label for="taskContent">테스크 내용</label>
-                <input type="text" id="taskContent" placeholder="테스크 내용" class="search-input">
-            </div>
-            <div class="modal-footer">
-                <button id="task-btn-cancel" class="btn-cancel">취소</button>
-                <button id="confirmAddTaskBtn" class="btn-confirm">추가</button>
+            <div class="kanban-col col-2" id="col-2" data-status="2">
+                <div class="kanban-col-header">
+                    <span class="kanban-col-title">✅ 완료</span>
+                    <span class="kanban-count" id="count-2">0</span>
+                </div>
+                <div class="kanban-cards" id="cards-2"></div>
             </div>
         </div>
-    </div>
+    </main>
+</div>
 
-    <div id="editTaskModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>테스크 수정</h2>
-                <button id="task-edit-modal-close" class="modal-close">&times;</button>
+<!-- 상세 패널 -->
+<div class="detail-overlay" id="detailOverlay"></div>
+<div class="detail-panel" id="detailPanel">
+    <button class="detail-close" id="detailClose">×</button>
+    <div class="detail-title" id="detailTitle"></div>
+    <div class="detail-meta"  id="detailMeta"></div>
+    <div>
+        <div class="detail-section-title">📝 설명</div>
+        <textarea class="desc-area" id="descArea" placeholder="태스크 설명을 입력하세요..."></textarea>
+        <button class="desc-save-btn" id="descSaveBtn">저장</button>
+    </div>
+    <div>
+        <div class="detail-section-title">💬 댓글</div>
+        <div class="comment-list" id="commentList"></div>
+        <div class="comment-input-row">
+            <input type="text" class="comment-input" id="commentInput" placeholder="댓글을 입력하세요...">
+            <button class="comment-send" id="commentSend">전송</button>
+        </div>
+    </div>
+    <div>
+        <div class="detail-section-title">📎 첨부파일</div>
+        <div class="file-list" id="fileList"></div>
+        <div class="file-upload-area" onclick="document.getElementById('fileInput').click()">📂 클릭하여 파일 업로드</div>
+        <input type="file" id="fileInput" multiple>
+    </div>
+</div>
+
+<!-- 태스크 추가 모달 -->
+<div id="addTaskModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>태스크 추가</h2>
+            <button class="modal-close" id="task-modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div>
+                <label>제목 *</label>
+                <input type="text" class="modal-input" id="taskContent" placeholder="태스크 제목을 입력하세요">
             </div>
-            <div class="modal-body">
-                <label for="taskContent">테스크 내용</label>
-                <input type="hidden" id="curTaskId">
-                <input type="text" id="taskEditContent" placeholder="테스크 내용" class="search-input">
-                <select id="status">
-                    <option value="0">시작</option>
-                    <option value="1">진행중</option>
-                    <option value="2">완료</option>
+            <div>
+                <label>설명 (선택)</label>
+                <input type="text" class="modal-input" id="taskDesc" placeholder="간단한 설명...">
+            </div>
+            <div class="date-row">
+                <div>
+                    <label>시작일 *</label>
+                    <input type="date" class="modal-input" id="taskStartAt">
+                </div>
+                <div>
+                    <label>마감일 *</label>
+                    <input type="date" class="modal-input" id="taskEndAt">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" id="task-btn-cancel">취소</button>
+            <button class="btn-confirm" id="confirmAddTaskBtn">추가</button>
+        </div>
+    </div>
+</div>
+
+<!-- 태스크 편집 모달 -->
+<div id="editTaskModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>태스크 편집</h2>
+            <button class="modal-close" id="task-edit-modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="curTaskId">
+            <div>
+                <label>제목</label>
+                <input type="text" class="modal-input" id="taskEditContent" placeholder="태스크 제목">
+            </div>
+            <div>
+                <label>상태</label>
+                <select class="modal-input" id="status">
+                    <option value="0">📋 시작 전</option>
+                    <option value="1">🔄 진행중</option>
+                    <option value="2">✅ 완료</option>
                 </select>
             </div>
-            <div class="modal-footer">
-                <button id="task-edit-btn-cancel" class="btn-cancel">취소</button>
-                <button id="confirmEditTaskBtn" class="btn-confirm">수정</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="addMemberModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>멤버 변경</h2>
-                <input type="hidden" id="curTaskIdMember">
-                <button id="member-modal-close" class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="dual-list-container">
-                    <!-- 왼쪽: 전체 사용자 목록 (검색 가능) -->
-                    <div class="list-column">
-                        <label for="userSearch">사용자 검색</label>
-                        
-                        <div id="availableUsersList" class="user-list-box">
-                            <!-- JS에서 동적으로 생성됨 -->
-                        </div>
-                        <input type="text" id="userSearch" placeholder="이름 또는 ID 검색..." class="search-input">
-                    </div>
-
-                    <!-- 중앙: 이동 버튼 -->
-                    <div class="list-controls">
-                        <button id="moveToRightBtn" class="btn-move" title="추가 리스트로 이동">&gt;</button>
-                    </div>
-
-                    <!-- 오른쪽: 추가 예정 멤버 목록 -->
-                    <div class="list-column">
-                        <label>현재 멤버 목록</label>
-                        <div id="selectedUsersList" class="user-list-box">
-                            <!-- JS에서 동적으로 생성됨 -->
-                        </div>
-                    </div>
+            <div class="date-row">
+                <div>
+                    <label>시작일</label>
+                    <input type="date" class="modal-input" id="editStartAt">
+                </div>
+                <div>
+                    <label>마감일</label>
+                    <input type="date" class="modal-input" id="editEndAt">
                 </div>
             </div>
-            <div class="modal-footer">
-                <button id="member-btn-cancel" class="btn-cancel">취소</button>
-                <button id="confirmAddBtn" class="btn-confirm">확인</button>
-            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" id="task-edit-btn-cancel">취소</button>
+            <button class="btn-confirm" id="confirmEditTaskBtn">저장</button>
         </div>
     </div>
-    <input type="hidden" id="userId" th:value="${currentUserId}">
-    <script th:src="@{/js/tasks.js}"></script>
+</div>
+
+<!-- 담당자 배정 모달 -->
+<div id="addMemberModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>담당자 배정</h2>
+            <button class="modal-close" id="member-modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editMemberTaskId">
+            <div class="dual-list-container">
+                <div class="list-column">
+                    <label>프로젝트 멤버</label>
+                    <input type="text" class="search-input" id="userSearch" placeholder="이름 검색...">
+                    <div class="user-list-box" id="userList"></div>
+                </div>
+                <div class="list-controls">
+                    <button class="btn-move" id="moveToRightBtn">›</button>
+                </div>
+                <div class="list-column">
+                    <label>담당자</label>
+                    <div class="user-list-box" id="assignedList"></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" id="member-btn-cancel">취소</button>
+            <button class="btn-confirm" id="confirmAddBtn">저장</button>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/toast.js}"></script>
+<script th:src="@{/js/sidebar.js}"></script>
+<script th:src="@{/js/tasks.js}"></script>
 </body>
 </html>
